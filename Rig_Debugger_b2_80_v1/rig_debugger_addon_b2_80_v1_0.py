@@ -83,408 +83,6 @@ def objectIcon(object):
                 
     return icon
 
-class RIG_DEBUGGER_OT_SelectCollection(bpy.types.Operator):
-    bl_idname = "rig_debugger.select_collection"
-    bl_label = "Select Collection"
-    bl_description = "Set collection as Parent or Active collection"
-    bl_options = {'UNDO',}
-    type: bpy.props.StringProperty(default="DEFAULT")
-    index: bpy.props.IntProperty(default=0, min=-1)
-    
-    def execute(self, context):
-        scene = bpy.context.scene
-        props = scene.RD_Props
-                
-        if self.type == "SELECT_ACTIVE":
-            props.collection_active = bpy.data.collections[self.index]
-            
-        self.type == "DEFAULT"
-        
-        return {'FINISHED'}
-
-class RIG_DEBUGGER_OT_GroupOperators(bpy.types.Operator):
-    bl_idname = "rig_debugger.collection_ops"
-    bl_label = "Iterate Objects Duplicating Operators"
-    bl_description = "Iterate Objects Duplicating Operators"
-    bl_options = {'UNDO',}
-    type: bpy.props.StringProperty(default="DEFAULT")
-    index: bpy.props.IntProperty(default=0, min=0)
-    
-    def execute(self, context):
-        scene = bpy.context.scene
-        props = scene.RD_Props
-        
-        #New Collection Group inside Parent Collection and set as Active Collection
-        if self.type == "NEW_GROUP":
-            
-            colNew = bpy.data.collections.new(props.group_name)
-            #Links colNew2 to collection_active
-            props.collection_active = colNew
-            
-            #Links new collection to Master_Collection
-            bpy.context.scene.collection.children.link(colNew)
-            
-            #Note for For Loop Bellow: For every props.collections[].collection, create a new collection and set that as the pointer to the collections[].collection so each object gets a new collection
-            
-            #Removes collections from all RD_Props.collections.collection
-            for i in enumerate(props.collections):
-                i[1].collection = None
-                
-        self.type == "DEFAULT"
-        
-        return {'FINISHED'}
-        
-class RIG_DEBUGGER_OT_Duplicate(bpy.types.Operator):
-    bl_idname = "rig_debugger.duplicating_ops"
-    bl_label = "Duplicates active objects"
-    bl_description = "Duplicates active objects and sends them to the Active Collection"
-    bl_options = {'UNDO',}
-    
-    type: bpy.props.StringProperty(default="DEFAULT")
-    index: bpy.props.IntProperty(default=0, min=0)
-    
-    @classmethod
-    def poll(cls, context):
-        scene = bpy.context.scene
-        props = scene.RD_Props
-        
-        #return props.collection_parent is not None and props.collection_active is not None
-        return True#props.collection_active is not None
-    
-    def execute(self, context):
-        scene = bpy.context.scene
-        props = scene.RD_Props
-        #inputs = context.preferences.inputs
-        #bpy.context.preferences.inputs.view_rotate_method
-        
-        if self.type == "DUPLICATE":
-            
-            #prev_mode saves the previous mode of the object
-            prev_mode = str(bpy.context.object.mode)
-            
-            #.mode_set() operator changes the mode of the object to "OBJECT" mode for the .duplicate_move() operator to work
-            if prev_mode != "OBJECT":
-                bpy.ops.object.mode_set(mode="OBJECT")
-            
-            #if props.collection_parent is not None:
-                #Was here before
-                
-            #If there is no collection in collection_active, create one
-            if props.collection_active is None:
-                colNew = bpy.data.collections.new(props.group_name)
-                #Sets collection_active as colNew
-                props.collection_active = colNew
-                
-                bpy.context.scene.collection.children.link(colNew)
-            
-            if len(bpy.context.selected_objects) > 0:
-                
-                previous_active = bpy.context.active_object
-                
-                previous_selected = bpy.context.selected_objects
-                
-                #Duplicates selected objects in previous_selected
-                bpy.ops.object.duplicate_move(OBJECT_OT_duplicate={"linked":False, "mode":'TRANSLATION'}, TRANSFORM_OT_translate={"value":(0.0, 0.0, 0.0), "orient_type":'GLOBAL'})
-                
-                #Iterates through all selected objects
-                for i in enumerate(previous_selected):
-                    existingCol = None
-                    existingColName = ""
-                    #lastOb = None
-                    #All objects in previous_selected have been deselected, and all duplicated objects have been selected in "ob"
-                    ob = bpy.context.selected_objects[i[0]]
-                    
-                    #Unlinks duplicate from all collections it is linked to
-                    for k in enumerate(ob.users_collection):
-                        k[1].objects.unlink(ob)
-                    
-                    #Iterates through all RD_Props.collections
-                    for j in enumerate(props.collections):
-                        #If object is already registered in props.collections:object
-                        if i[1] == j[1].object:
-                            existingCol = j[1]
-                            
-                            #If RD_Props.collections.collection is None (Ex. when a New Group collection is made)
-                            if j[1].collection is None:
-                                colNew = bpy.data.collections.new(i[1].name)
-                                #Sets RD_Props.collections' collection
-                                j[1].collection = colNew
-                                #Hides new collection
-                                colNew.hide_viewport = True
-                                
-                                props.collection_active.children.link(colNew)
-                            
-                            #Links duplicated object to existing collection
-                            j[1].collection.objects.link(ob)
-                            #j[1].duplicates += 1
-                            j[1].name = j[1].collection.name
-                            
-                            print("For: 1")
-                            break
-                    
-                    print("existingCol: %s" % (str(existingCol)))
-                    
-                    #If object wasn't found inside props.collections as .object
-                    if existingCol == None:
-                        #Checks how you want the new Collection name for new Iteration Object to be
-                        if props.group_name_use == True:
-                            new_group_name = i[1].name
-                        else:
-                            new_group_name = props.group_name
-                        
-                        colNew2 = bpy.data.collections.new(new_group_name)
-                        #Links colNew2 to collection_active
-                        props.collection_active.children.link(colNew2)
-                        
-                        #Links duplicate to colNew2 collection
-                        colNew2.objects.link(ob)
-                        
-                        #Adds scene.RD_Props collection
-                        propsCol = props.collections.add()
-                        propsCol.collection = colNew2
-                        propsCol.object = i[1]#i[1]#bpy.context.selected_objects[existinOb]
-                        #propsCol.duplicates += 1
-                        #Makes the name of 
-                        propsCol.name = colNew2.name
-                        #Adds the index of the order of created
-                        propsCol.recent += len(props.collections)
-                        #Custom Index will be in order if it is a new props.collection
-                        propsCol.custom += len(props.collections)
-                        
-                        #Adds icon name to props.collection object to display in Viewport
-                        propsCol.icon = objectIcon(propsCol.object)
-                        
-                        #Hides Collection
-                        propsCol.collection.hide_viewport = True
-                        
-                        existingCol = propsCol
-                    
-                    """
-                    #Doesn't Temporarily hides in the viewport
-                    ob.hide_set(not props.hide_types[0])
-                    #Doesn't Hide object from rendering
-                    ob.hide_render = not props.hide_types[1]
-                    #Doesn't Hide object from rendering
-                    ob.hide_viewport = not props.hide_types[2] """
-                    
-                    #Unselects duplicated object
-                    ob.select_set(False)
-                    #Selects previously selected object
-                    previous_selected[i[0]].select_set(True)
-                    
-                #selects previously active object
-                previous_active.select_set(True)
-                #Sets previously active object as active
-                bpy.context.view_layer.objects.active = previous_active
-                    
-            else:
-                reportString = "No Objects Selected. 0 Objects Duplicated"
-                
-                #print(reportString)
-                self.report({'INFO'}, reportString)
-            
-            #Calls the update function ListOrderUpdate to change locations of props.collections
-            ListOrderUpdate(self, context)
-            
-            #Sets IM_ULIndex as index of previously active context object
-            if props.index_to_new == True:
-            
-                for i in enumerate(props.collections):
-                    if i[1].object == previous_active:
-                        props.IM_ULIndex = i[0]
-                        break
-            
-            #Changes the Mode of the active object back to its previous mode.
-            bpy.ops.object.mode_set(mode=prev_mode)
-                        
-        self.type == "DEFAULT"
-        
-        return {'FINISHED'}
-        
-class RIG_DEBUGGER_OT_Cleaning(bpy.types.Operator):
-    bl_idname = "rig_debugger.cleaning_ops"
-    bl_label = "Cleaning/Deleting Operators "
-    bl_description = "Cleaning & Deleting Iterate Objects & Objects inside their collections."
-    bl_options = {'UNDO',}
-    
-    type: bpy.props.StringProperty(default="DEFAULT")
-    index: bpy.props.IntProperty(default=0, min=0)
-    
-    def execute(self, context):
-        scene = bpy.context.scene
-        props = scene.RD_Props
-        
-        #Deletes Objects inside Iterate Object collections, except most recent ammounts given by user
-        if self.type == "CLEAN_1":
-        
-            #Gets previous length of props.collections
-            len_previous = len(props.collections)
-            
-            len_diff = 0
-            
-            before = list(props.collections)
-            #col_name = "[No Collection]"
-            
-            #Goes through every Iterate Object
-            for i in enumerate(props.collections):
-                
-                if i[1].collection != None:
-                    #ob_name = ""
-                    col_name = str(i[1].collection.name)
-                    
-                    if i[1].object != None:
-                        ob_name = str(i[1].object.name)
-                    else:
-                        ob_name = "[No Object]"
-                        
-                    #Everyithing but the last # of objects from props.clean_leave integer
-                    list_rev = reversed(list(enumerate(i[1].collection.objects[:-props.clean_leave])))
-                    
-                    len_prev = len(i[1].collection.objects)
-                    
-                    removed = 0
-                    
-                    for j in list_rev:
-                        bpy.data.objects.remove(j[1])
-                        removed += 1;
-                        
-                    print("Index [%d]: Prev_Len: %d, Removed %d, [Object: %s; Collection: %s ]" % (i[0], len_prev, removed, ob_name, col_name))
-                else:
-                    pass
-            
-            #Prints the last ammount of different Iterate Objects calculated
-            print("Removed: ( %d/%d ) Iterate Objects \n" % (len_diff, len_previous))
-        
-        #Deletes Iterate Objects without an Object or Collection pointer
-        elif self.type == "CLEAN_2":
-        
-            #Gets previous length of props.collections
-            len_previous = len(props.collections)
-            
-            len_diff = 0
-            
-            for i in reversed(list(enumerate(props.collections))):
-                #print(" i : " + str(i))
-                #if len(i[1].collection.objects) == 0:
-                if i[1].object == None or i[1].collection == None:
-                    #ob_name = ""
-                    if i[1].object != None:
-                        ob_name = str(i[1].object.name)
-                    else:
-                        ob_name = "[No Collection]"
-                    #else:
-                    if i[1].collection != None:
-                        col_name = str(i[1].collection.name)
-                    else:
-                        col_name = "[No Collection]"
-                        
-                    print("Removed [%d]: [Object: %s; Collection: %s ]" % (i[0], ob_name, col_name))
-                    
-                    bpy.context.scene.RD_Props.collections.remove(i[0])
-            
-            #Prints the last ammount of different Iterate Objects calculated
-            print("Removed: ( %d/%d ) Iterate Objects \n" % (len_diff, len_previous))
-            
-        self.type == "DEFAULT"
-        
-        return {'FINISHED'}
-
-class RIG_DEBUGGER_OT_Removing(bpy.types.Operator):
-    bl_idname = "rig_debugger.removing_ops"
-    bl_label = "Remove all but the ammount the user inputs for all Iterate Objects"
-    bl_description = "Duplicates active objects and sends them to the Active Collection"
-    bl_options = {'UNDO',}
-    
-    type: bpy.props.StringProperty(default="DEFAULT")
-    index: bpy.props.IntProperty(default=0, min=0)
-    
-    def execute(self, context):
-        scene = bpy.context.scene
-        props = scene.RD_Props
-        
-        if self.type == "PRINT":
-            #Gets previous length of props.collections
-            len_previous = len(props.collections)
-            
-            before = list(props.collections)
-            
-            for i in reversed(list(enumerate(before))):
-                if len(i[1].collection.objects) == 1:
-                    print("before[i[0]]: [%d]; Object.name: %s" % (i[0], before[i[0]].object.name))
-                    del before[i[0]]
-                    
-        #Prints the Iterate Objects with 1 or less objects
-        elif self.type == "PRINT_DIFFERENT_1":
-            #Gets previous length of props.collections
-            len_previous = len(props.collections)
-            
-            len_diff = 0
-            
-            #before = list(props.collections)
-            print("Iterate Objects with 1 Object or Less in .Collection: ")
-            
-            for i in enumerate(props.collections):
-                #Checks if i[1] has an object for a name
-                if i[1].object != None:
-                    ob_name = i[1].object.name
-                else:
-                    ob_name = "[No Object]"
-                    
-                col_name = "[No Collection]"
-                objects = 0
-                    
-                #If there is a collection pointer
-                if i[1].collection != None:
-                    objects = len(i[1].collection.objects)
-                    #Checks if there is 1 or less objects in the collection
-                    if objects <= 1:
-                        #Sets the col_name variable to collection name
-                        col_name = i[1].collection.name
-                        len_diff += 1
-                #else:
-                #    col_name = "[No Collection]"
-                    
-                if objects <= 1:
-                    print("Index[%d] (Objects: %d) [Object: %s; Collection: %s ]" % (i[0], objects, ob_name, col_name))
-                
-            #Prints the last ammount of different Iterate Objects calculated
-            print("Different: ( %d/%d ) Iterate Objects \n" % (len_diff, len_previous))
-            
-        #Fake "Deletes" Iterate Objects without an Object or Collection pointer
-        elif self.type == "CLEAN_TEST":
-        
-            #Gets previous length of props.collections
-            len_previous = len(props.collections)
-            
-            len_diff = 0
-            
-            before = list(props.collections)
-            
-            for i in reversed(list(enumerate(before))):
-                if i[1].object == None or i[1].collection == None:
-                    #ob_name = ""
-                    if i[1].object != None:
-                        ob_name = str(i[1].object.name)
-                    else:
-                        ob_name = "[No Collection]"
-                    #else:
-                    if i[1].collection != None:
-                        col_name = str(i[1].collection.name)
-                    else:
-                        col_name = "[No Collection]"
-                        
-                    print("Removed [%d]: [Object: %s; Collection: %s ]" % (i[0], ob_name, col_name))
-                    
-                    del before[i[0]]
-                    
-            print("Before: "+str(before[::]))
-            
-            #Prints the last ammount of different Iterate Objects calculated
-            print("Removed: ( %d/%d ) Iterate Objects \n" % (len_diff, len_previous))
-            
-        self.type == "DEFAULT"
-        
-        return {'FINISHED'}
         
 class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
     bl_idname = "rig_debugger.debug"
@@ -498,8 +96,34 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
         scene = bpy.context.scene
         props = scene.RD_Props
         
+        #Fake "Deletes" Iterate Objects without an Object or Collection pointer
+        if self.type == "PRINT_ALL":
+            
+            anim_data = bpy.context.object.animation_data
+            direction = ("X", "Y", "Z")
+            
+            #For the Hidden, Muted, and Locked driver counts
+            toggled = [0,0,0]
+            
+            for i in enumerate(anim_data.drivers):
+                print("%d: %s [%d]; Path: %s" % (i[0], direction[i[1].array_index], i[1].array_index, i[1].data_path))
+                print("  Hide: %s; Mute: %s; Lock: %s" % (i[1].hide, i[1].mute, i[1].lock))
+                
+                if i[1].hide == True:
+                    toggled[0] += 1
+                elif i[1].mute == True:
+                    toggled[1] += 1
+                elif i[1].lock == True:
+                    toggled[2] += 1
+            
+            #reportString = "Drivers: %d; Left: %d; Right: %d" % (len(anim_data.drivers), removedObjects, removedCol)
+            reportString = "Drivers: %d; Hidden: %d; Muted: %d; Locked: %d" % (len(anim_data.drivers), toggled[0], toggled[1], toggled[2])
+            
+            print(reportString)
+            self.report({'INFO'}, reportString)
+        """
         #Mass deletion of every Iteration Object & their collections and objects inside them
-        if self.type == "DELETE_NUKE":
+        elif self.type == "DELETE_NUKE":
             
             if props.collection_active is not None:
                 removedObjects = 0
@@ -532,122 +156,13 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                 
             print(reportString)
             self.report({'INFO'}, reportString)
-                
-        elif self.type == "PRINT_1":
-            no_objects = 0
-            no_collections = 0
-            
-            for i in enumerate(props.collections):
-                if i[1].object != None:
-                    print_ob = str(i[1].object.name)
-                else:
-                    print_ob = "[None]"
-                    no_objects += 1
-                    
-                if i[1].collection != None:
-                    print_col = str(i[1].collection.name)
-                else:
-                    print_col = "[None]"
-                    no_collections += 1
-                
-                print("%d. Object: %s, Collection: %s" % (i[0], print_ob, print_col))
-                
-            print("Total Objects: %d" % (len(props.collections)))
-            #Displays how many Iteration Objects don't have Objects or Collections
-            print("No Objects: %d; No Collections: %d" % (no_objects, no_collections))
-        
-        #Adds 3 Iterate Objects with missing Objects & Collections for testing.
-        elif self.type == "TESTING":
-            
-            ob_1 = props.collections.add()
-            ob_1.collection = bpy.data.collections[0]
-            
-            ob_2 = props.collections.add()
-            ob_2.object = bpy.data.objects[0]
-            
-            ob_3 = props.collections.add()
-            print("Added 3 Iterate Objects.")
-            
-        #Copied from .remove_ops operator before.
-        elif self.type == "PRINT":
-            #Gets previous length of props.collections
-            len_previous = len(props.collections)
-            
-            before = list(props.collections)
-            
-            for i in reversed(list(enumerate(before))):
-                if len(i[1].collection.objects) == 1:
-                    print("before[i[0]]: [%d]; Object.name: %s" % (i[0], before[i[0]].object.name))
-                    del before[i[0]]
-                    
-        #Prints the Iterate Objects with 1 or less objects
-        elif self.type == "PRINT_DIFFERENT_1":
-            #Gets previous length of props.collections
-            len_previous = len(props.collections)
-            
-            len_diff = 0
-            
-            #before = list(props.collections)
-            print("Iterate Objects with 1 Object or Less in .Collection: ")
-            
-            for i in enumerate(props.collections):
-                #Checks if i[1] has an object for a name
-                if i[1].object != None:
-                    ob_name = i[1].object.name
-                else:
-                    ob_name = "[No Object]"
-                    
-                col_name = "[No Collection]"
-                objects = 0
-                    
-                #If there is a collection pointer
-                if i[1].collection != None:
-                    objects = len(i[1].collection.objects)
-                    #Checks if there is 1 or less objects in the collection
-                    if objects <= 1:
-                        #Sets the col_name variable to collection name
-                        col_name = i[1].collection.name
-                        len_diff += 1
-                #else:
-                #    col_name = "[No Collection]"
-                    
-                if objects <= 1:
-                    print("Index[%d] (Objects: %d) [Object: %s; Collection: %s ]" % (i[0], objects, ob_name, col_name))
-                
-            #Prints the last ammount of different Iterate Objects calculated
-            print("Different: ( %d/%d ) Iterate Objects \n" % (len_diff, len_previous))
-            
-        #Fake "Deletes" Iterate Objects without an Object or Collection pointer
-        elif self.type == "CLEAN_TEST":
-        
-            #Gets previous length of props.collections
-            len_previous = len(props.collections)
-            
-            len_diff = 0
-            
-            before = list(props.collections)
-            
-            for i in reversed(list(enumerate(before))):
-                if i[1].object == None or i[1].collection == None:
-                    #ob_name = ""
-                    if i[1].object != None:
-                        ob_name = str(i[1].object.name)
-                    else:
-                        ob_name = "[No Collection]"
-                    #else:
-                    if i[1].collection != None:
-                        col_name = str(i[1].collection.name)
-                    else:
-                        col_name = "[No Collection]"
-                        
-                    print("Removed [%d]: [Object: %s; Collection: %s ]" % (i[0], ob_name, col_name))
-                    
-                    del before[i[0]]
                     
             print("Before: "+str(before[::]))
             
             #Prints the last ammount of different Iterate Objects calculated
-            print("Removed: ( %d/%d ) Iterate Objects \n" % (len_diff, len_previous))
+            print("Removed: ( %d/%d ) Iterate Objects \n" % (len_diff, len_previous)) """
+            
+            
             
         #Resets default settings
         self.type == "DEFAULT"
@@ -873,8 +388,6 @@ class RIG_DEBUGGER_PT_CustomPanel1(bpy.types.Panel):
             row.menu("RIG_DEBUGGER_MT_CollectionsMenuActive", icon="GROUP", text=MenuName2)
         else:
             row.prop(props.collection_active, "name", icon="GROUP", text="")
-            
-        row.operator("rig_debugger.collection_ops", icon="ADD", text="").type = "NEW_GROUP"
         
         #Separates for extra space between
         col.separator()
@@ -898,10 +411,7 @@ class RIG_DEBUGGER_PT_CustomPanel1(bpy.types.Panel):
                     iterateNew = True
                     break
         #Changes text from "Iterate" to "Iterate New" if object wasn't found in Iterate Objects
-        ob_name_iterate = "Iterate New" if iterateNew == False else "Iterate"
-        
-        row = col.row(align=True)
-        row.operator("rig_debugger.duplicating_ops", icon="DUPLICATE", text=ob_name_iterate).type = "DUPLICATE"
+        #ob_name_iterate = "Iterate New" if iterateNew == False else "Iterate"
         
         row = col.row(align=True)
         
@@ -971,6 +481,14 @@ class RIG_DEBUGGER_PT_DisplaySettings(bpy.types.Panel):
         
         col = layout.column()
         
+        #Debug Operators
+        row = col.row(align=True)
+        row.label(text="Debug Operators:")
+        
+        row = col.row(align=True)
+        row.operator("rig_debugger.debug", text="Print All").type = "PRINT_ALL"
+        
+        
         row = col.row(align=True)
         row.label(text="Display Order")
         
@@ -1016,31 +534,7 @@ class RIG_DEBUGGER_PT_DisplaySettings(bpy.types.Panel):
         
         row.prop(props, "group_name", text="New Name", icon="NONE")
         
-        #Operator to clean the list
         """
-        row = col.row(align=True)
-        button = row.operator("rig_debugger.cleaning_ops", text="Clean Iteration Object List", icon="TRASH")
-        button.type = "DELETE" """
-        
-        
-        col = layout.column(align=False)
-        
-        col.separator()
-        
-        row = col.row(align=True)
-        row.label(text="Cleaning Operators:")
-        
-        row = col.row(align=True)
-        row.operator("rig_debugger.cleaning_ops", text="Clean Collections").type = "CLEAN_1"
-        
-        row = col.row(align=True)
-        row.prop(props, "clean_leave", text="Leave")
-        
-        col.separator()
-        
-        row = col.row(align=True)
-        row.operator("rig_debugger.cleaning_ops", text="Remove Empty").type = "CLEAN_2"
-        
         if props.debug_mode == True:
             #Debug Operators
             row = col.row(align=True)
@@ -1064,7 +558,7 @@ class RIG_DEBUGGER_PT_DisplaySettings(bpy.types.Panel):
             row.operator("rig_debugger.debug", text="Delete All").type = "DELETE_NUKE"
             
             row = col.row(align=True)
-            row.operator("rig_debugger.debug", text="Print Objects/Collections").type = "PRINT_1"
+            row.operator("rig_debugger.debug", text="Print Objects/Collections").type = "PRINT_1" """
             
 
 def ListOrderUpdate(self, context):
@@ -1217,11 +711,6 @@ class RIG_DEBUGGER_Props(bpy.types.PropertyGroup):
     
 #Classes that are registered
 classes = (
-    RIG_DEBUGGER_OT_SelectCollection,
-    RIG_DEBUGGER_OT_GroupOperators,
-    RIG_DEBUGGER_OT_Duplicate,
-    RIG_DEBUGGER_OT_Cleaning,
-    RIG_DEBUGGER_OT_Removing,
     
     RIG_DEBUGGER_OT_Debugging,
     RIG_DEBUGGER_OT_UIOperators,
