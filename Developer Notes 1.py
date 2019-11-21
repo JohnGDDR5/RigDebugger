@@ -4,6 +4,54 @@
 
 #Version 1.0000, 8/4/2019
 
+#New Notes
+##############
+
+bpy.data.objects['Armature.1'].animation_data.drivers[0].driver.expression
+#Returns a string '-(var*RollM) if (var < 0) else False'
+
+len(bpy.data.objects['Armature.1'].animation_data.drivers)
+#Returns number of drivers in the object
+
+bpy.data.objects['Armature.1'].animation_data.drivers[0].driver.variables[0].name
+#Returns the DriverVariable name of the Driver 'var'
+
+bpy.data.objects['Armature.1'].animation_data.drivers[0].driver.variables[0].type
+#Returns 'TRANSFORMS'
+
+bpy.data.objects['Armature.1'].animation_data.drivers[0].driver.variables[0].targets[0].id
+#Returns object pointer bpy.data.objects['Armature.1']
+
+bpy.data.objects['Armature.1'].animation_data.drivers[0].driver.variables[0].targets[0].bone_target
+#Returns bone name 'Hoof.Front.Roll.L'
+
+bpy.data.objects['Armature.1'].animation_data.drivers[0].driver.variables[1].targets[0].data_path
+#Returns String '["RollMultiplication"]'
+#Note: Only returns value other than '' if Variable type is 'SINGLE_PROP'
+
+
+bpy.data.objects['Armature.1'].animation_data.drivers[0].extrapolation
+#Returns extrapolation 'LINEAR'
+
+bpy.data.objects['Armature.1'].animation_data.drivers[0].select
+#Returns boolean True if selected
+
+bpy.data.objects['Armature.1'].animation_data.drivers[0].lock
+bpy.data.objects['Armature.1'].animation_data.drivers[0].mute
+bpy.data.objects['Armature.1'].animation_data.drivers[0].hide
+
+bpy.data.objects['Armature.1'].animation_data.drivers[0].modifiers[0]
+#Returns the modifier of driver if one is added.
+
+bpy.data.objects['Armature.1'].animation_data.drivers[0].color_mode
+#Returns 'AUTO_RAINBOW'
+#Note: I couldn't find documentation of this in the API
+
+bpy.data.objects['Armature.1'].animation_data.drivers[0].color
+#Returns a color Color((1.0, 0.3999999761581421, 0.3999999761581421))
+
+##############
+#Old Notes
 bpy.context.scene.collection.children['Collection 3']
 Returns bpy.data.collections['Collection 3']
 
