@@ -105,22 +105,61 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
             #For the Hidden, Muted, and Locked driver counts
             toggled = [0,0,0]
             
-            for i in enumerate(anim_data.drivers):
-                print("%d: %s [%d]; Path: %s" % (i[0], direction[i[1].array_index], i[1].array_index, i[1].data_path))
-                print("  Hide: %s; Mute: %s; Lock: %s" % (i[1].hide, i[1].mute, i[1].lock))
+            if anim_data != None:
+                for i in enumerate(anim_data.drivers):
+                    print("%d: %s [%d]; Path: %s" % (i[0], direction[i[1].array_index], i[1].array_index, i[1].data_path))
+                    print("  Hide: %s; Mute: %s; Lock: %s" % (i[1].hide, i[1].mute, i[1].lock))
+                    
+                    if i[1].hide == True:
+                        toggled[0] += 1
+                    elif i[1].mute == True:
+                        toggled[1] += 1
+                    elif i[1].lock == True:
+                        toggled[2] += 1
                 
-                if i[1].hide == True:
-                    toggled[0] += 1
-                elif i[1].mute == True:
-                    toggled[1] += 1
-                elif i[1].lock == True:
-                    toggled[2] += 1
+                #reportString = "Drivers: %d; Left: %d; Right: %d" % (len(anim_data.drivers), removedObjects, removedCol)
+                reportString = "Drivers: %d; Hidden: %d; Muted: %d; Locked: %d" % (len(anim_data.drivers), toggled[0], toggled[1], toggled[2])
+                
+                print(reportString)
+                self.report({'INFO'}, reportString)
             
-            #reportString = "Drivers: %d; Left: %d; Right: %d" % (len(anim_data.drivers), removedObjects, removedCol)
-            reportString = "Drivers: %d; Hidden: %d; Muted: %d; Locked: %d" % (len(anim_data.drivers), toggled[0], toggled[1], toggled[2])
+            else:
+                reportString = "Object[%s] has No Drivers" % (bpy.context.object.name)
+                
+                print(reportString)
+                self.report({'INFO'}, reportString)
+                
+        elif self.type == "PRINT_DRIVER_TEST":
             
-            print(reportString)
-            self.report({'INFO'}, reportString)
+            anim_data = bpy.context.object.animation_data
+            direction = ("X", "Y", "Z")
+            
+            #For the Hidden, Muted, and Locked driver counts
+            toggled = [0,0,0]
+            
+            if anim_data != None:
+                for i in enumerate(anim_data.drivers):
+                    print("%d: %s [%d]; Path: %s" % (i[0], direction[i[1].array_index], i[1].array_index, i[1].data_path))
+                    print("  Hide: %s; Mute: %s; Lock: %s" % (i[1].hide, i[1].mute, i[1].lock))
+                    
+                    if i[1].hide == True:
+                        toggled[0] += 1
+                    elif i[1].mute == True:
+                        toggled[1] += 1
+                    elif i[1].lock == True:
+                        toggled[2] += 1
+                
+                #reportString = "Drivers: %d; Left: %d; Right: %d" % (len(anim_data.drivers), removedObjects, removedCol)
+                reportString = "Drivers: %d; Hidden: %d; Muted: %d; Locked: %d" % (len(anim_data.drivers), toggled[0], toggled[1], toggled[2])
+                
+                print(reportString)
+                self.report({'INFO'}, reportString)
+            
+            else:
+                reportString = "Object[%s] has No Drivers" % (bpy.context.object.name)
+                
+                print(reportString)
+                self.report({'INFO'}, reportString)
         """
         #Mass deletion of every Iteration Object & their collections and objects inside them
         elif self.type == "DELETE_NUKE":
@@ -486,7 +525,10 @@ class RIG_DEBUGGER_PT_DisplaySettings(bpy.types.Panel):
         row.label(text="Debug Operators:")
         
         row = col.row(align=True)
-        row.operator("rig_debugger.debug", text="Print All").type = "PRINT_ALL"
+        row.operator("rig_debugger.debug", text="Print All Drivers").type = "PRINT_ALL"
+        
+        row = col.row(align=True)
+        row.operator("rig_debugger.debug", text="Print All Drivers").type = "PRINT_DRIVER_TEST"
         
         
         row = col.row(align=True)
