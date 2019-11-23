@@ -137,20 +137,166 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
             #For the Hidden, Muted, and Locked driver counts
             toggled = [0,0,0]
             
-            if anim_data != None:
-                for i in enumerate(anim_data.drivers):
-                    print("%d: %s [%d]; Path: %s" % (i[0], direction[i[1].array_index], i[1].array_index, i[1].data_path))
-                    print("  Hide: %s; Mute: %s; Lock: %s" % (i[1].hide, i[1].mute, i[1].lock))
-                    
-                    if i[1].hide == True:
-                        toggled[0] += 1
-                    elif i[1].mute == True:
-                        toggled[1] += 1
-                    elif i[1].lock == True:
-                        toggled[2] += 1
+            if anim_data.drivers != None:
+                data_path = anim_data.drivers[0].data_path
+                print("data_path: %s" % (data_path))
                 
-                #reportString = "Drivers: %d; Left: %d; Right: %d" % (len(anim_data.drivers), removedObjects, removedCol)
-                reportString = "Drivers: %d; Hidden: %d; Muted: %d; Locked: %d" % (len(anim_data.drivers), toggled[0], toggled[1], toggled[2])
+                print('"pose.bones": %s' % (str(data_path.startswith('pose.bones'))))
+                
+                if data_path.startswith('pose.bones') == True:
+                    #2 allows for 2 splits in string, meaning 3 strings in the .split() list
+                    split = data_path.split('"', 2)
+                    #1 allows for 1 splits in string, meaning 2 strings in the .split() list
+                    rsplit = data_path.rsplit('.', 1)
+                    
+                    print("split: %s" % (str(split)))
+                    print(" split[1]: %s" % (str(split[1] )))
+                    
+                    print("rsplit: %s" % (str(rsplit)))
+                    print(" rsplit[1]: %s" % (str(rsplit[1] )))
+                    #for i in enumerate(anim_data.drivers):
+                
+                reportString = "Done!"
+                
+                print(reportString)
+                self.report({'INFO'}, reportString)
+            
+            else:
+                reportString = "Object[%s] has No Drivers" % (bpy.context.object.name)
+                
+                print(reportString)
+                self.report({'INFO'}, reportString)
+                
+        elif self.type == "ADD_DRIVER_TEST":
+            
+            anim_data = bpy.context.object.animation_data
+            direction = ("X", "Y", "Z")
+            
+            #For the Hidden, Muted, and Locked driver counts
+            toggled = [0,0,0]
+            
+            if anim_data.drivers != None:
+                data_path = anim_data.drivers[0].data_path
+                print("data_path: %s" % (data_path))
+                
+                print('"pose.bones": %s' % (str(data_path.startswith('pose.bones'))))
+                
+                if data_path.startswith('pose.bones') == True:
+                    #2 allows for 2 splits in string, meaning 3 strings in the .split() list
+                    split = data_path.split('"', 2)
+                    #1 allows for 1 splits in string, meaning 2 strings in the .split() list
+                    rsplit = data_path.rsplit('.', 1)
+                    
+                    print("split: %s" % (str(split)))
+                    print(" split[1]: %s" % (str(split[1] )))
+                    
+                    print("rsplit: %s" % (str(rsplit)))
+                    print(" rsplit[1]: %s" % (str(rsplit[1] )))
+                    #for i in enumerate(anim_data.drivers):
+                    
+                    def flipNames(string):
+                        
+                        case_low = string.lower()
+                        
+                        #sides = (".l", ".L", ".r", ".R", ".left", ".right", ".Left", ".Right")
+                        #sides = (".l", ".r", ".left", ".right")
+                        #sides = (".l", ".r")
+                        
+                        #sides = (".l", ".L", ".r", ".R", ".left", ".right", ".Left", ".Right")
+                        sides = (".l", ".r", ".left", ".right")
+                        side = -1
+                        side2 = 0
+                        
+                        index = 0
+                        
+                        #Only needs to use ".l" and ".r"
+                        for j in enumerate(sides[0:2]):
+                            rfound = case_low.rfind( sides[j[0]] )
+                            if rfound > -1:
+                                print("rfound: %d" % (rfound))
+                                if j[1] == ".l":
+                                    #if (rfound+1) == len(string)-1:   
+                                    if case_low.rfind( ".left", rfound ) > -1:
+                                        side = 2
+                                        index = rfound
+                                        break
+                                    else:
+                                        side = 0
+                                        index = rfound
+                                        break
+                                elif j[1] == ".r":
+                                    #if (rfound+1) == len(string)-1:   
+                                    if case_low.rfind( ".right", rfound ) > -1:
+                                        side = 3
+                                        index = rfound
+                                        break
+                                    else:
+                                        side = 1
+                                        index = rfound
+                                        break
+                            else:
+                                print("Side = -1")
+                                pass
+                        """
+                        def convCase(index1, string1, string2):
+                            
+                            if string1[1].isupper() != string2[index1+i].isupper():
+                            
+                            for i in range(string1):
+                                if string1[i].isupper() != string2[index1+i].isupper():
+                                    string2[index1+i]
+                                
+                            if side1 == 0:
+                                string2 = 
+                            if string2.upper """
+                        
+                        print("Side 1: %d" % (side))
+                        
+                        if side > -1:
+                            if side == 0:
+                                #case_flip = ".r"
+                                side2 = 1
+                            elif side == 1:
+                                #case_flip = ".l"
+                                side2 = 0
+                            elif side == 2:
+                                side2 = 3
+                            elif side == 3:
+                                side2 = 2
+                                
+                            print("Side 2: %d" % (side2))
+                                
+                            replace = sides[side2]
+                            
+                            print("replace 1: %s" % (replace))
+                                
+                            print("string[index+1]: %s; isUpper: %s" % (string[index+1], string[index+1].isupper()))
+                                
+                            #if sides[side][1].isupper() != string2[index1+1].isupper():
+                            if string[index+1].isupper():
+                                
+                                
+                                replace = "." + sides[side2][1:].capitalize()
+                                
+                            print("replace 2: %s" % (replace))
+                            print("string[:index]: %s" % (string[:index]))
+                            print("string[index+len(replace):]: %s" % (string[index+len(replace):]))
+                                
+                            string = string[:index] + replace + string[index+len(sides[side]):]
+                            
+                        return string
+                    
+                    found = str(split[1]).find(".L")
+                    rfound = str(split[1]).rfind(".L")
+                    
+                    #print("split.find(): index: %d; char: %s" % (found, str(split[1])[found]))
+                    
+                    #print("split.rfind(): index: %d; char: %s" % (rfound, str(split[1])[rfound]))
+                    
+                    #print("flipNames: %s" % (flipNames( str(split[1]) )) )
+                    print("flipNames: %s" % (flipNames( bpy.context.active_pose_bone.name )) )
+                
+                reportString = "Done!"
                 
                 print(reportString)
                 self.report({'INFO'}, reportString)
@@ -528,7 +674,10 @@ class RIG_DEBUGGER_PT_DisplaySettings(bpy.types.Panel):
         row.operator("rig_debugger.debug", text="Print All Drivers").type = "PRINT_ALL"
         
         row = col.row(align=True)
-        row.operator("rig_debugger.debug", text="Print All Drivers").type = "PRINT_DRIVER_TEST"
+        row.operator("rig_debugger.debug", text="Print Driver Test").type = "PRINT_DRIVER_TEST"
+        
+        row = col.row(align=True)
+        row.operator("rig_debugger.debug", text="Add Driver Test").type = "ADD_DRIVER_TEST"
         
         
         row = col.row(align=True)

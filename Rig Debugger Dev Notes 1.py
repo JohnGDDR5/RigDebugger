@@ -18,6 +18,27 @@ if d.data_path.startswith('pose.bones'):
 for i in enumerate(bpy.data.objects['Armature.1'].animation_data.drivers):
     print("%d: Index %d" % (i[0], i[1].array_index))
 
+bpy.context.object.pose.bones["Hoof.Front.Roll.Back.L"].rotation_euler[2]
+#Adds a driver
+bpy.context.object.pose.bones["Hoof.Front.Roll.Back.L"].driver_add('rotation_euler', 2)
+
+bpy.context.object.animation_data.drivers[0].driver_add('rotation_euler', 2)
+
+bruh = bpy.context.object.pose.bones["Hoof.Front.Roll.Back.L"].driver_add('rotation_euler', 2).driver
+bruh.type = 'SCRIPTED'
+
+bpy.context.object.animation_data.drivers[17].keyframe_points[0].interpolation
+#Returns 'BEZIER'
+
+.insert()
+FCurveKeyframePoints.insert(frame, value, options=set(), keyframe_type='KEYFRAME')
+
+bpy.context.object.animation_data.drivers[17].keyframe_points.insert(0, 0.0)
+bpy.context.object.animation_data.drivers[17].keyframe_points.insert(1, 1.0)
+
+bpy.context.object.animation_data.drivers[18].convert_to_keyframes()
+
+
 bpy.data.objects['Armature.1'].animation_data.drivers[0].data_path
 #Returns driver's bone 'pose.bones["Hoof.Front.Roll.Back.L"].rotation_euler'
 
@@ -27,6 +48,12 @@ bpy.data.objects['Armature.1'].animation_data.drivers[1].array_index
 bpy.data.objects['Armature.1'].animation_data.drivers[0].driver.expression
 #Returns a string '-(var*RollM) if (var < 0) else False'
 
+bpy.context.object.animation_data.drivers[0].driver.type
+#Returns 'SCRIPTED', 'AVERAGE', 'SUM', 'SCRIPTED', 'MIN', 'MAX' 
+
+bpy.context.object.animation_data.drivers[0].driver.use_self
+#Returns boolean, False or True
+
 len(bpy.data.objects['Armature.1'].animation_data.drivers)
 #Returns number of drivers in the object
 
@@ -34,10 +61,13 @@ bpy.data.objects['Armature.1'].animation_data.drivers[0].driver.variables[0].nam
 #Returns the DriverVariable name of the Driver 'var'
 
 bpy.data.objects['Armature.1'].animation_data.drivers[0].driver.variables[0].type
-#Returns 'TRANSFORMS'
+#Returns 'TRANSFORMS', 'SINGLE_PROP', 'ROTATION_DIFF', 'LOC_DIFF'
 
 bpy.data.objects['Armature.1'].animation_data.drivers[0].driver.variables[0].targets[0].id
-#Returns object pointer bpy.data.objects['Armature.1']
+#Returns Object pointer bpy.data.objects['Armature.1']
+
+bpy.context.object.animation_data.drivers[0].driver.variables[1].targets[0].id_type
+#Returns the Object type, such as 'ARMATURE'
 
 bpy.data.objects['Armature.1'].animation_data.drivers[0].driver.variables[0].targets[0].bone_target
 #Returns bone name 'Hoof.Front.Roll.L'
@@ -45,6 +75,16 @@ bpy.data.objects['Armature.1'].animation_data.drivers[0].driver.variables[0].tar
 bpy.data.objects['Armature.1'].animation_data.drivers[0].driver.variables[1].targets[0].data_path
 #Returns String '["RollMultiplication"]'
 #Note: Only returns value other than '' if Variable type is 'SINGLE_PROP'
+
+
+bpy.context.object.animation_data.drivers[0].driver.variables[0].targets[0].transform_type
+#Returns 'ROT_X'
+
+bpy.context.object.animation_data.drivers[0].driver.variables[0].targets[0].transform_space
+#Returns 'LOCAL_SPACE'
+
+bpy.context.object.animation_data.drivers[0].driver.variables[0].targets[0].rotation_mode
+#Returns 'AUTO'
 
 
 bpy.data.objects['Armature.1'].animation_data.drivers[0].extrapolation
@@ -66,6 +106,8 @@ bpy.data.objects['Armature.1'].animation_data.drivers[0].color_mode
 
 bpy.data.objects['Armature.1'].animation_data.drivers[0].color
 #Returns a color Color((1.0, 0.3999999761581421, 0.3999999761581421))
+
+
 
 ##############
 #Old Notes
