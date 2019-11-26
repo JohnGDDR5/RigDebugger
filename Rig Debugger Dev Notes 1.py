@@ -146,7 +146,12 @@ bpy.context.selected_objects[0].users_collection[0].objects.unlink()
 
 #bpy.context.screen.areas[5].spaces[0].local_view is not None
 
+bpy.context.screen.areas[7].spaces[0].cursor_position_x
+
 #bpy.ops.object.mode_set(mode="OBJECT")
+
+for i in enumerate(bpy.context.screen.areas):
+    print("%d %s" % (i[0], i[1].type))
 
 #IM_Props.
     #collection_parent:

@@ -83,6 +83,89 @@ def objectIcon(object):
                 
     return icon
 
+#Flip names of string with, (".l", ".r", ".left", ".right") upper or lower case.
+# the print() functions are commented, uncomment them for debugging.
+def flipNames(string):
+    
+    case_low = string.lower()
+    
+    #sides = (".l", ".r")
+    #sides = (".l", ".L", ".r", ".R", ".left", ".right", ".Left", ".Right")
+    sides = (".l", ".r", ".left", ".right")
+    # -1 to check if it changed, since .rfind() returns -1 if not found, 
+    side = -1
+    #Side2 is the new flipped side index to use for sides[]
+    side2 = 0
+    
+    #index is the index .rfind() found the last occurance in the String
+    index = 0
+    
+    #Only needs to use ".l" and ".r"
+    for j in enumerate(sides[0:2]):
+        rfound = case_low.rfind( sides[j[0]] )
+        if rfound > -1:
+            #print("rfound: %d" % (rfound))
+            if j[1] == ".l":
+                #if (rfound+1) == len(string)-1:   
+                if case_low.rfind( ".left", rfound ) > -1:
+                    side = 2
+                    index = rfound
+                    break
+                else:
+                    side = 0
+                    index = rfound
+                    break
+            elif j[1] == ".r":
+                #if (rfound+1) == len(string)-1:   
+                if case_low.rfind( ".right", rfound ) > -1:
+                    side = 3
+                    index = rfound
+                    break
+                else:
+                    side = 1
+                    index = rfound
+                    break
+        else:
+            #print("Side = -1")
+            pass
+    
+    #print("Side 1: %d" % (side))
+    
+    #Switches the side index to the flipped one
+    if side > -1:
+        if side == 0:
+            #case_flip = ".r"
+            side2 = 1
+        elif side == 1:
+            #case_flip = ".l"
+            side2 = 0
+        elif side == 2:
+            side2 = 3
+        elif side == 3:
+            side2 = 2
+            
+        #print("Side 2: %d" % (side2))
+            
+        #The new flipped side
+        replace = sides[side2]
+        
+        #print("replace 1: %s" % (replace))
+            
+        #print("string[index+1]: %s; isUpper: %s" % (string[index+1], string[index+1].isupper()))
+            
+        #if the "l" or "r" for original string is uppercase, uppercase the letter in "replace" variable
+        if string[index+1].isupper():
+            
+            replace = "." + sides[side2][1:].capitalize()
+            
+        #print("replace 2: %s" % (replace))
+        #print("string[:index]: %s" % (string[:index]))
+        #print("string[index+len(replace):]: %s" % (string[index+len(replace):]))
+            
+        # adds text before, then the replace, and then any text that was after the .l or .r
+        string = string[:index] + replace + string[index+len(sides[side]):]
+        
+    return string
         
 class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
     bl_idname = "rig_debugger.debug"
@@ -94,6 +177,7 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
     
     def execute(self, context):
         scene = bpy.context.scene
+        context = bpy.context
         props = scene.RD_Props
         
         #Fake "Deletes" Iterate Objects without an Object or Collection pointer
@@ -129,7 +213,7 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                 print(reportString)
                 self.report({'INFO'}, reportString)
                 
-        elif self.type == "PRINT_DRIVER_TEST":
+        elif self.type == "PRINT_ADD_DRIVER_TEST":
             
             anim_data = bpy.context.object.animation_data
             direction = ("X", "Y", "Z")
@@ -155,7 +239,9 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                     print("rsplit: %s" % (str(rsplit)))
                     print(" rsplit[1]: %s" % (str(rsplit[1] )))
                     #for i in enumerate(anim_data.drivers):
-                
+                    
+                    print("flipNames: %s" % (flipNames( bpy.context.active_pose_bone.name )) )
+                    
                 reportString = "Done!"
                 
                 print(reportString)
@@ -167,7 +253,33 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                 print(reportString)
                 self.report({'INFO'}, reportString)
                 
-        elif self.type == "ADD_DRIVER_TEST":
+        elif self.type == "FLIP_NAMES_TEST":
+            ob = bpy.context.object
+            anim_data = ob.animation_data
+            
+            print("\nFlipped Names of:")
+            
+            if bpy.context.active_pose_bone != None:
+                print("Active Pose Bone: %s" % (flipNames( bpy.context.active_pose_bone.name )) )
+                
+            if anim_data.drivers != None:
+                data_path = anim_data.drivers[0].data_path
+                
+                if data_path.startswith('pose.bones') == True:
+                    
+                    split = data_path.split('"', 2)
+                    
+                    print("The 1st Driver: %s to %s" % (split[1], flipNames( split[1] )) )
+                    
+                else:
+                    print("\n Data_path didn't start with \"pose.bones\" \n")
+            else:
+                print("\n There were 0 drivers on %s \n" % (ob.name))
+                
+            reportString = "Done!"
+            self.report({'INFO'}, reportString)
+                
+        elif self.type == "MIRROR_DRIVER_TEST":
             
             anim_data = bpy.context.object.animation_data
             direction = ("X", "Y", "Z")
@@ -176,129 +288,50 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
             toggled = [0,0,0]
             
             if anim_data.drivers != None:
-                data_path = anim_data.drivers[0].data_path
-                print("data_path: %s" % (data_path))
-                
-                print('"pose.bones": %s' % (str(data_path.startswith('pose.bones'))))
-                
-                if data_path.startswith('pose.bones') == True:
-                    #2 allows for 2 splits in string, meaning 3 strings in the .split() list
-                    split = data_path.split('"', 2)
-                    #1 allows for 1 splits in string, meaning 2 strings in the .split() list
-                    rsplit = data_path.rsplit('.', 1)
+                for i in enumerate(anim_data.drivers):
+                    data_path = anim_data.drivers[i[0]].data_path
+                    array_index = anim_data.drivers[i[0]].array_index
+                    print("data_path: %s" % (data_path))
                     
-                    print("split: %s" % (str(split)))
-                    print(" split[1]: %s" % (str(split[1] )))
+                    #print('"pose.bones": %s' % (str(data_path.startswith('pose.bones'))))
                     
-                    print("rsplit: %s" % (str(rsplit)))
-                    print(" rsplit[1]: %s" % (str(rsplit[1] )))
-                    #for i in enumerate(anim_data.drivers):
+                    if data_path.startswith('pose.bones') == True:
+                        #2 allows for 2 splits in string, meaning 3 strings in the .split() list
+                        split = data_path.split('"', 2)
+                        #1 allows for 1 splits in string, meaning 2 strings in the .split() list
+                        rsplit = data_path.rsplit('.', 1)
+                        
+                        flippedName = flipNames( split[1] )
+                        
+                        #print("split: %s" % (str(split)))
+                        #print(" split[1]: %s" % (str(split[1] )))
+                        
+                        #print("rsplit: %s" % (str(rsplit)))
+                        print(" rsplit[1]: %s" % (str(rsplit[1])) )
+                        
+                        print("flipNames: %s" % (flippedName) )
+                        
+                        split[1] = flippedName
+                        
+                        print(" split Flipped: %s" % (str(split)) )
+                        
+                        #eval("bpy.context.object.pose.bones["+split[1]+"]."+rsplit[1]])
+                        data_path_2 = str("bpy.context.object.pose.bones[\""+split[1]+"\"]")
+                        print("Data Path 2: %s" % (data_path_2) )
+                        eval(data_path_2).driver_add(rsplit[1], array_index)
+                        
+                        #This one works
+                        bpy.context.object.pose.bones[split[1]].driver_add(rsplit[1], array_index)
+                        
+                        reportString = "Done!"
+                        #break here is placeholder to just do 1 iteration
+                        break
                     
-                    def flipNames(string):
-                        
-                        case_low = string.lower()
-                        
-                        #sides = (".l", ".L", ".r", ".R", ".left", ".right", ".Left", ".Right")
-                        #sides = (".l", ".r", ".left", ".right")
-                        #sides = (".l", ".r")
-                        
-                        #sides = (".l", ".L", ".r", ".R", ".left", ".right", ".Left", ".Right")
-                        sides = (".l", ".r", ".left", ".right")
-                        side = -1
-                        side2 = 0
-                        
-                        index = 0
-                        
-                        #Only needs to use ".l" and ".r"
-                        for j in enumerate(sides[0:2]):
-                            rfound = case_low.rfind( sides[j[0]] )
-                            if rfound > -1:
-                                print("rfound: %d" % (rfound))
-                                if j[1] == ".l":
-                                    #if (rfound+1) == len(string)-1:   
-                                    if case_low.rfind( ".left", rfound ) > -1:
-                                        side = 2
-                                        index = rfound
-                                        break
-                                    else:
-                                        side = 0
-                                        index = rfound
-                                        break
-                                elif j[1] == ".r":
-                                    #if (rfound+1) == len(string)-1:   
-                                    if case_low.rfind( ".right", rfound ) > -1:
-                                        side = 3
-                                        index = rfound
-                                        break
-                                    else:
-                                        side = 1
-                                        index = rfound
-                                        break
-                            else:
-                                print("Side = -1")
-                                pass
-                        """
-                        def convCase(index1, string1, string2):
-                            
-                            if string1[1].isupper() != string2[index1+i].isupper():
-                            
-                            for i in range(string1):
-                                if string1[i].isupper() != string2[index1+i].isupper():
-                                    string2[index1+i]
-                                
-                            if side1 == 0:
-                                string2 = 
-                            if string2.upper """
-                        
-                        print("Side 1: %d" % (side))
-                        
-                        if side > -1:
-                            if side == 0:
-                                #case_flip = ".r"
-                                side2 = 1
-                            elif side == 1:
-                                #case_flip = ".l"
-                                side2 = 0
-                            elif side == 2:
-                                side2 = 3
-                            elif side == 3:
-                                side2 = 2
-                                
-                            print("Side 2: %d" % (side2))
-                                
-                            replace = sides[side2]
-                            
-                            print("replace 1: %s" % (replace))
-                                
-                            print("string[index+1]: %s; isUpper: %s" % (string[index+1], string[index+1].isupper()))
-                                
-                            #if sides[side][1].isupper() != string2[index1+1].isupper():
-                            if string[index+1].isupper():
-                                
-                                
-                                replace = "." + sides[side2][1:].capitalize()
-                                
-                            print("replace 2: %s" % (replace))
-                            print("string[:index]: %s" % (string[:index]))
-                            print("string[index+len(replace):]: %s" % (string[index+len(replace):]))
-                                
-                            string = string[:index] + replace + string[index+len(sides[side]):]
-                            
-                        return string
+                    else:
+                        reportString = "Data_path didn't start with \"pose.bones\" "
+                        break
                     
-                    found = str(split[1]).find(".L")
-                    rfound = str(split[1]).rfind(".L")
-                    
-                    #print("split.find(): index: %d; char: %s" % (found, str(split[1])[found]))
-                    
-                    #print("split.rfind(): index: %d; char: %s" % (rfound, str(split[1])[rfound]))
-                    
-                    #print("flipNames: %s" % (flipNames( str(split[1]) )) )
-                    print("flipNames: %s" % (flipNames( bpy.context.active_pose_bone.name )) )
-                
-                reportString = "Done!"
-                
-                print(reportString)
+                print(reportString + "\n")
                 self.report({'INFO'}, reportString)
             
             else:
@@ -354,93 +387,6 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
         
         return {'FINISHED'}
         
-class RIG_DEBUGGER_OT_UIOperators(bpy.types.Operator):
-    bl_idname = "rig_debugger.ui_list_ops"
-    bl_label = "List Operators"
-    bl_description = "Operators for moving and deleting list rows"
-    bl_options = {'UNDO',}
-    type: bpy.props.StringProperty(default="DEFAULT")
-    sub: bpy.props.StringProperty(default="DEFAULT")
-    #index: bpy.props.IntProperty(default=0, min=0)
-    
-    def execute(self, context):
-        scene = bpy.context.scene
-        props = scene.RD_Props
-        active = props.IM_ULIndex
-        
-        #collection_active: 
-        #collections:
-            #collection:
-            #object:
-            #duplicates:
-            #recent:
-            
-        #Sets list_order to "CUSTOM" when moving list rows UP or DOWN
-        if props.list_order != "CUSTOM" and (self.type == "UP" or self.type == "DOWN"):
-            if props.list_reverse == "DESCENDING":
-                for i in enumerate(props.collections):
-                    i[1].custom = i[0]
-            else:
-                for i in enumerate(reversed(props.collections)):
-                    i[1].custom = i[0]
-                
-            props.list_order = "CUSTOM"
-            print("Mc Bruh")
-        
-        #Moves list row UP
-        if self.type == "UP":
-            
-            if self.sub == "DEFAULT":
-                if active != 0:
-                    props.collections.move(active, active-1)
-                    props.IM_ULIndex-=1
-                    
-                else:
-                    props.collections.move(0, len(props.collections)-1)
-                    props.IM_ULIndex  = len(props.collections)-1
-                    
-            elif self.sub == "TOP":
-                props.collections.move(active, 0)
-                props.IM_ULIndex = 0
-        
-        #Moves list row DOWN
-        elif self.type == "DOWN":
-            
-            if self.sub == "DEFAULT":
-                if active != len(props.collections)-1:
-                    props.collections.move(active, active+1)
-                    props.IM_ULIndex += 1
-                    
-                else:
-                    props.collections.move(len(props.collections)-1, 0)
-                    props.IM_ULIndex = 0
-                    
-            elif self.sub == "BOTTOM":
-                props.collections.move(active, len(props.collections)-1)
-                props.IM_ULIndex = len(props.collections)-1
-                
-        elif self.type == "REMOVE" and len(props.collections) > 0:
-            if self.sub == "DEFAULT":
-                #If active is the last one
-                if active == len(props.collections)-1:
-                    props.collections.remove(props.IM_ULIndex)
-                    
-                    if len(props.collections) != 0:
-                        props.IM_ULIndex -= 1
-                        
-                else:
-                    props.collections.remove(props.IM_ULIndex)
-            #Note: This only removes the props.collections, not the actual collections or objects
-            elif self.sub == "ALL":
-                props.collections.clear()
-        
-        #Resets self props into "DEFAULT"
-        self.type == "DEFAULT"
-        self.sub == "DEFAULT"
-        
-        return {'FINISHED'}
-            
-
 class RIG_DEBUGGER_UL_items(bpy.types.UIList):
     
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
@@ -501,36 +447,81 @@ class RIG_DEBUGGER_UL_items(bpy.types.UIList):
 
     def invoke(self, context, event):
         pass
-        
-class RIG_DEBUGGER_MT_CollectionsMenuActive(bpy.types.Menu):
-    bl_idname = "RIG_DEBUGGER_MT_CollectionsMenuActive"
-    bl_label = "Select a Collection for Active"
-    bl_description = "Dropdown to select an Active Collection to iterate objects to"
+
+#Calculates ammounts of different attributes drivers have
+def calculateUIALL(string):
+    ob = bpy.context.object
+    anim_data = ob.animation_data
     
-    # here you specify how they are drawn
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-        data = bpy.data
-        props = scene.RD_Props
+    count = 0
+    
+    if len(anim_data.drivers) > 0:
+        #If driver toggled as hidden/inactive in the UI
+        if string == "hide":
+            for i in anim_data.drivers:
+                if i.hide == True:
+                    count += 1
+                    
+        elif string == "mute":
+            for i in anim_data.drivers:
+                if i.mute == True:
+                    count += 1
+                    
+        elif string == "lock":
+            for i in anim_data.drivers:
+                if i.lock == True:
+                    count += 1
+                    
+        #Calculates how many Drivers have at least 1 modifier
+        elif string == "modifiers":
+            for i in anim_data.drivers:
+                if len(i.modifiers) > 0:
+                    count += 1
         
-        col = layout.column()
+    else:
+        pass
+    
+    return count
+   
+#Tried to do this for the active/selected "Driver" in the Driver Editor, but it isn't accessable via python, so I would have to learn C in order to expose the RNA   
+"""
+#Calculates ammounts of different attributes drivers have
+def calculateUIActive(string):
+    ob = bpy.context.object
+    anim_data = ob.animation_data
+    
+    count = 0
+    
+    if ob.type == 'ARMATURE':
         
-        row = col.row(align=True)
+    
+    if len(anim_data.drivers) > 0:
+        #If driver toggled as hidden/inactive in the UI
+        if string == "hide":
+            for i in anim_data.drivers:
+                if i.hide == True:
+                    count += 1
+                    
+        elif string == "mute":
+            for i in anim_data.drivers:
+                if i.mute == True:
+                    count += 1
+                    
+        elif string == "lock":
+            for i in anim_data.drivers:
+                if i.lock == True:
+                    count += 1
+                    
+        #Calculates how many Drivers have at least 1 modifier
+        elif string == "modifiers":
+            for i in anim_data.drivers:
+                if len(i.modifiers) > 0:
+                    count += 1
         
-        if len(bpy.data.collections) > 0:
-            for i in enumerate(bpy.data.collections):
-                button = row.operator("rig_debugger.select_collection", text=i[1].name)
-                button.type = "SELECT_ACTIVE"
-                button.index = i[0]
-                
-                row = col.row(align=True)
-        else:
-            #NEW_COLLECTION
-            button = row.operator("rig_debugger.collection_ops", text="Add Collection", icon = "ADD")
-            button.type = "NEW_COLLECTION"
-            #bpy.data.collections.new("Boi") 
-        #row.prop(self, "ui_tab", expand=True)#, text="X")
+    else:
+        pass
+    
+    return count """
     
 class RIG_DEBUGGER_PT_CustomPanel1(bpy.types.Panel):
     #A Custom Panel in Viewport
@@ -545,125 +536,11 @@ class RIG_DEBUGGER_PT_CustomPanel1(bpy.types.Panel):
     def draw(self, context):
                  
         layout = self.layout
+        ob = bpy.context.object
         scene = context.scene
         props = scene.RD_Props
         
         #Layout Starts
-        col = layout.column()
-        
-        #Active Collection
-        row = col.row(align=True)
-        row.label(text="Parent Collection:")
-        
-        row = col.row(align=True)
-        
-        MenuName2 = "Select Collection"
-        
-        if props.collection_active is not None:
-            MenuName2 = props.collection_active.name
-            
-        #Lock Icon
-        if props.lock_active == False:
-            row.prop(props, "lock_active", icon="UNLOCKED", text="")
-        else:
-            row.prop(props, "lock_active", icon="LOCKED", text="")
-            
-        #if props.collection_active is None:
-        if props.lock_active == False or props.collection_active is None:
-            row.menu("RIG_DEBUGGER_MT_CollectionsMenuActive", icon="GROUP", text=MenuName2)
-        else:
-            row.prop(props.collection_active, "name", icon="GROUP", text="")
-        
-        #Separates for extra space between
-        col.separator()
-        
-        #Duplicate Button TOP
-        if bpy.context.object != None:
-            ob_name_1 = bpy.context.object.name
-        else:
-            ob_name_1 = "No Object Selected"
-            
-        #for loop
-        ob_name_col_1 = "New Collection"
-        #ob_name_iterate = "Iterate"
-        iterateNew = False
-        
-        for i in enumerate(props.collections):
-            if i[1].object == bpy.context.object:
-                if i[1].collection != None:
-                    ob_name_col_1 = i[1].collection.name
-                    #changes iterateNew to 
-                    iterateNew = True
-                    break
-        #Changes text from "Iterate" to "Iterate New" if object wasn't found in Iterate Objects
-        #ob_name_iterate = "Iterate New" if iterateNew == False else "Iterate"
-        
-        row = col.row(align=True)
-        
-        #row.label(text="Collection: "+ob_name_col_1, icon="GROUP")
-        row.label(text="Collection: ", icon="GROUP")
-        row.label(text=ob_name_col_1)
-        
-        #if props.dropdown_1 == True:
-        row = col.row(align=True)
-        
-        row.label(text="Object: ", icon="OUTLINER_OB_MESH")
-        row.label(text=ob_name_1)
-            
-        #Duplicate Button BOTTOM
-        
-        row = col.row(align=True)
-        row.label(text="Iteration Objects (%d):" % len(props.collections))
-        #TOP
-        
-        split = layout.row(align=False)
-        col = split.column(align=True)
-        
-        row = col.row(align=True)
-        row.template_list("RIG_DEBUGGER_UL_items", "custom_def_list", props, "collections", props, "IM_ULIndex", rows=3)
-        
-        #Side_Bar Operators
-        col = split.column(align=True)
-        
-        row = col.row(align=True)
-        button = row.operator("rig_debugger.ui_list_ops", text="", icon="TRIA_UP")
-        button.type = "UP"
-        
-        row = col.row(align=True)
-        button = row.operator("rig_debugger.ui_list_ops", text="", icon="TRIA_DOWN")
-        button.type = "DOWN"
-        
-        row = col.row(align=True)
-        button = row.operator("rig_debugger.ui_list_ops", text="", icon="PANEL_CLOSE")
-        button.type = "REMOVE"
-        
-        row = col.row(align=True)
-        row.prop(props, "display_icons", text="", icon="OUTLINER_OB_MESH")
-        
-        #Edit Mode option
-        row = col.row(align=True)
-        row.prop(props, "display_collections", text="", icon="GROUP")
-        
-        #End of CustomPanel
-        
-
-class RIG_DEBUGGER_PT_DisplaySettings(bpy.types.Panel):
-    bl_label = "Display Settings"
-    bl_parent_id = "RIG_DEBUGGER_PT_CustomPanel1"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = 'UI'
-    #bl_context = "output"
-    bl_category = "Rig Debugger"
-    
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-        data = bpy.data
-        props = scene.RD_Props
-        
-        #collection_active: 
-        #collections:
-        
         col = layout.column()
         
         #Debug Operators
@@ -674,84 +551,42 @@ class RIG_DEBUGGER_PT_DisplaySettings(bpy.types.Panel):
         row.operator("rig_debugger.debug", text="Print All Drivers").type = "PRINT_ALL"
         
         row = col.row(align=True)
-        row.operator("rig_debugger.debug", text="Print Driver Test").type = "PRINT_DRIVER_TEST"
+        row.operator("rig_debugger.debug", text="Print Add Driver Test").type = "PRINT_ADD_DRIVER_TEST"
+        
+        #Just to test my FlipNames function
+        row = col.row(align=True)
+        row.operator("rig_debugger.debug", text="Flip Names Test").type = "FLIP_NAMES_TEST"
         
         row = col.row(align=True)
-        row.operator("rig_debugger.debug", text="Add Driver Test").type = "ADD_DRIVER_TEST"
-        
-        
-        row = col.row(align=True)
-        row.label(text="Display Order")
-        
-        row = col.row(align=True)
-        row.prop(scene.RD_Props, "list_order", expand=True)
-        
-        row = col.row(align=True)
-        row.label(text="Sort Order")
-        
-        row = col.row(align=True)
-        row.prop(props, "list_reverse", expand=True)#, text="X")
-        
-        #row = col.row(align=True)
-        #row.separator()
-        
-        #col = layout.column(align=False)
-        
-        row = col.row(align=True)
-        row.label(text="Display")
-        
-        row = col.row(align=True)
-        row.prop(props, "display_collections", text="Collections", icon="GROUP")
-        row.prop(props, "display_icons", text="Icons", icon="OUTLINER_OB_MESH")
-        
-        col.separator()
-        
-        row = col.row(align=True)
-        
-        row.label(text="New Collection")
-        
-        row = col.row(align=True)
-
-        row.prop(props, "index_to_new", text="Update Active List Index", icon="NONE")
-        
-        row = col.row(align=True)
-
-        row.prop(props, "group_name_use", text="Use Object Name", icon="NONE")
-        
-        row = col.row(align=True)
-        
-        #Grays row out with .active, but you can still change props inside it.
-        row.active = not bool(props.group_name_use)
-        
-        row.prop(props, "group_name", text="New Name", icon="NONE")
-        
+        row.operator("rig_debugger.debug", text="Mirror Driver Test").type = "MIRROR_DRIVER_TEST"
         """
-        if props.debug_mode == True:
-            #Debug Operators
+        if ob.pose != None:
             row = col.row(align=True)
-            row.label(text="Debug Operators:")
+            row.label(text="Drivers: %d" % (len(ob.animation_data.drivers))) """
             
+        drivers = len(ob.animation_data.drivers)
+            
+        row = col.row(align=True)
+        row.prop(props, "dropdown_1", text="", icon="DOWNARROW_HLT")
+        row.label(icon= "DRIVER", text="Armature Drivers: %d" % (len(ob.animation_data.drivers)) )
+        
+        if props.dropdown_1 == True:
             row = col.row(align=True)
-            row.operator("rig_debugger.debug", text="Print Different").type = "PRINT_DIFFERENT_1"
-            
-            #row = col.row(align=True)
-            #row.operator("rig_debugger.debug", text="Delete Test").type = "CLEAN"
-            
-            
-            col.separator()
-            
-            row = col.row(align=True)
-            row.operator("rig_debugger.debug", text="Add 3 Objects").type = "TESTING"
-            
-            col.separator()
+            row.label(icon= "HIDE_OFF", text="Hidden: %d/%d" % (calculateUIALL("hide"), drivers) )
             
             row = col.row(align=True)
-            row.operator("rig_debugger.debug", text="Delete All").type = "DELETE_NUKE"
+            row.label(icon= "CHECKBOX_HLT", text="Muted: %d/%d" % (calculateUIALL("mute"), drivers) )
             
             row = col.row(align=True)
-            row.operator("rig_debugger.debug", text="Print Objects/Collections").type = "PRINT_1" """
+            row.label(icon= "DECORATE_LOCKED", text="Locked: %d/%d" % (calculateUIALL("lock"), drivers) )
             
-
+            row = col.row(align=True)
+            row.label(icon= "MODIFIER_ON", text="With Modifiers: %d/%d" % (calculateUIALL("modifiers"), drivers) )
+            
+        
+        
+        #End of CustomPanel
+        
 def ListOrderUpdate(self, context):
     scene = bpy.context.scene
     data = bpy.data
@@ -846,20 +681,14 @@ class RIG_DEBUGGER_PreferencesMenu(bpy.types.AddonPreferences):
             row.operator("wm.url_open", text="Youtube").url = "https://www.youtube.com/channel/UCzPZvV24AXpOBEQWK4HWXIA"
             row.operator("wm.url_open", text="Twitter").url = "https://twitter.com/JohnGDDR5"
             row.operator("wm.url_open", text="Artstation").url = "https://www.artstation.com/johngddr5"
-
-class RIG_DEBUGGER_CollectionObjects(bpy.types.PropertyGroup):
-    name: bpy.props.StringProperty(name="", default="")
-    collection: bpy.props.PointerProperty(name="Added Collections to List", type=bpy.types.Collection)
-    object: bpy.props.PointerProperty(name="Object", type=bpy.types.Object)
-    
-    #duplicates: bpy.props.IntProperty(name="Int", description="", default= 0, min=0)
-    
-    recent: bpy.props.IntProperty(name="Int", description="", default= 0, min=0)
-    custom: bpy.props.IntProperty(name="Int", description="", default= 0, min=0)
-    icon: bpy.props.StringProperty(name="Icon name for object", description="Used to display in the list", default="QUESTION")#, get=)#, update=checkIcon)
     
 class RIG_DEBUGGER_Props(bpy.types.PropertyGroup):
     #Tries to set collection_parent's default to Master Collection
+    
+    #Dropdown for Iterate Display
+    dropdown_1: bpy.props.BoolProperty(name="Dropdown", description="Show Props of all Drivers", default=True)
+    
+    dropdown_2: bpy.props.BoolProperty(name="Dropdown", description="Show Props of active Driver", default=True)
     
     collection_active: bpy.props.PointerProperty(name="Collection to add Collections for Object duplicates", type=bpy.types.Collection)
     
@@ -867,14 +696,13 @@ class RIG_DEBUGGER_Props(bpy.types.PropertyGroup):
     
     lock_active: bpy.props.BoolProperty(name="Lock Collection of Active", description="When locked, you can now edit the name of the selected collection", default=False)
     
-    collections: bpy.props.CollectionProperty(type=RIG_DEBUGGER_CollectionObjects)
+    #collections: bpy.props.CollectionProperty(type=RIG_DEBUGGER_CollectionObjects)
     
     IM_ULIndex: bpy.props.IntProperty(name="List Index", description="UI List Index", default= 0, min=0)
     
     clean_leave: bpy.props.IntProperty(name="List Index", description="Ammount of recent Objects to leave when cleaning.", default=2, min=0)
     
-    #Dropdown for Iterate Display
-    dropdown_1: bpy.props.BoolProperty(name="Dropdown", description="Show Object of Iterate Object", default=False)
+    
     
     group_name_use: bpy.props.BoolProperty(name="Use Object Name for New Collection", description="Use the Object\'s name for the New Collection when creating a new Iteration Object", default=True)
     
@@ -904,16 +732,14 @@ class RIG_DEBUGGER_Props(bpy.types.PropertyGroup):
 classes = (
     
     RIG_DEBUGGER_OT_Debugging,
-    RIG_DEBUGGER_OT_UIOperators,
+    #RIG_DEBUGGER_OT_UIOperators,
     
     RIG_DEBUGGER_UL_items,
-    RIG_DEBUGGER_MT_CollectionsMenuActive,
     
     RIG_DEBUGGER_PT_CustomPanel1,
-    RIG_DEBUGGER_PT_DisplaySettings,
     
     RIG_DEBUGGER_PreferencesMenu,
-    RIG_DEBUGGER_CollectionObjects,
+    #RIG_DEBUGGER_CollectionObjects,
     RIG_DEBUGGER_Props,
 )
 
