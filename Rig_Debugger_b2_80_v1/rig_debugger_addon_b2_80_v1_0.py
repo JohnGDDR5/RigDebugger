@@ -288,9 +288,13 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
             toggled = [0,0,0]
             
             if anim_data.drivers != None:
+                side_list = []
+                
                 for i in enumerate(anim_data.drivers):
-                    data_path = anim_data.drivers[i[0]].data_path
-                    array_index = anim_data.drivers[i[0]].array_index
+                    #data_path = anim_data.drivers[i[0]].data_path
+                    data_path = i[1].data_path
+                    #array_index = anim_data.drivers[i[0]].array_index
+                    array_index = i[1].array_index
                     print("data_path: %s" % (data_path))
                     
                     #print('"pose.bones": %s' % (str(data_path.startswith('pose.bones'))))
@@ -301,27 +305,33 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                         #1 allows for 1 splits in string, meaning 2 strings in the .split() list
                         rsplit = data_path.rsplit('.', 1)
                         
-                        flippedName = flipNames( split[1] )
+                        prop = rsplit[1]
+                        
+                        nameNormal = split[1]
+                        nameFlipped = flipNames( split[1] )
                         
                         #print("split: %s" % (str(split)))
                         #print(" split[1]: %s" % (str(split[1] )))
                         
                         #print("rsplit: %s" % (str(rsplit)))
-                        print(" rsplit[1]: %s" % (str(rsplit[1])) )
+                        print(" prop: %s" % (str(prop)) )
                         
-                        print("flipNames: %s" % (flippedName) )
+                        print("flipNames: %s" % (nameFlipped) )
                         
-                        split[1] = flippedName
+                        split[1] = nameFlipped
                         
-                        print(" split Flipped: %s" % (str(split)) )
+                        print(" split Flipped: %s; Array_Index: %d" % (str(split), array_index) )
                         
-                        #eval("bpy.context.object.pose.bones["+split[1]+"]."+rsplit[1]])
-                        data_path_2 = str("bpy.context.object.pose.bones[\""+split[1]+"\"]")
-                        print("Data Path 2: %s" % (data_path_2) )
-                        eval(data_path_2).driver_add(rsplit[1], array_index)
+                        
+                        #eval("bpy.context.object.pose.bones["+split[1]+"]."+prop])
+                        #data_path_2 = str("bpy.context.object.pose.bones[\""+split[1]+"\"]")
+                        #print("Data Path 2: %s; Array_Index: %d" % (data_path_2, array_index) )
+                        #eval(data_path_2).driver_add(prop, array_index)
                         
                         #This one works
-                        bpy.context.object.pose.bones[split[1]].driver_add(rsplit[1], array_index)
+                        driver_new = bpy.context.object.pose.bones[nameFlipped].driver_add(prop, array_index)
+                        
+                        print("New Driver: Data_Path: %s; Array_Index: %d; Type: %s;" % (driver_new.data_path, driver_new.array_index, driver_new.driver.type) )
                         
                         reportString = "Done!"
                         #break here is placeholder to just do 1 iteration
@@ -333,6 +343,92 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                     
                 print(reportString + "\n")
                 self.report({'INFO'}, reportString)
+                
+            
+            else:
+                reportString = "Object[%s] has No Drivers" % (bpy.context.object.name)
+                
+                print(reportString)
+                self.report({'INFO'}, reportString)
+                
+        elif self.type == "MIRROR_DRIVER_TEST_PRINT":
+            
+            anim_data = bpy.context.object.animation_data
+            direction = ("X", "Y", "Z")
+            
+            #For the Hidden, Muted, and Locked driver counts
+            toggled = [0,0,0]
+            
+            if anim_data.drivers != None:
+                list_nothing = []
+                list_side = []
+                #gets all the drivers with .L or .R
+                for i in enumerate(anim_data.drivers):
+                    data_path = i[1].data_path
+                    
+                    array_index = i[1].array_index
+                    print("data_path: %s" % (data_path))
+                    #for i in enumerate(anim_data.drivers):
+                    if data_path.startswith('pose.bones') == True:
+                        print()
+                    else:
+                        print("Passed: %s" % (str(i)) )
+                
+                
+                for i in enumerate(anim_data.drivers):
+                    #data_path = anim_data.drivers[i[0]].data_path
+                    data_path = i[1].data_path
+                    #array_index = anim_data.drivers[i[0]].array_index
+                    array_index = i[1].array_index
+                    print("data_path: %s" % (data_path))
+                    
+                    #print('"pose.bones": %s' % (str(data_path.startswith('pose.bones'))))
+                    
+                    if data_path.startswith('pose.bones') == True:
+                        #2 allows for 2 splits in string, meaning 3 strings in the .split() list
+                        split = data_path.split('"', 2)
+                        #1 allows for 1 splits in string, meaning 2 strings in the .split() list
+                        rsplit = data_path.rsplit('.', 1)
+                        
+                        prop = rsplit[1]
+                        
+                        nameNormal = split[1]
+                        nameFlipped = flipNames( split[1] )
+                        
+                        #print("split: %s" % (str(split)))
+                        #print(" split[1]: %s" % (str(split[1] )))
+                        
+                        #print("rsplit: %s" % (str(rsplit)))
+                        print(" prop: %s" % (str(prop)) )
+                        
+                        print("flipNames: %s" % (nameFlipped) )
+                        
+                        split[1] = nameFlipped
+                        
+                        print(" split Flipped: %s; Array_Index: %d" % (str(split), array_index) )
+                        
+                        
+                        #eval("bpy.context.object.pose.bones["+split[1]+"]."+prop])
+                        #data_path_2 = str("bpy.context.object.pose.bones[\""+split[1]+"\"]")
+                        #print("Data Path 2: %s; Array_Index: %d" % (data_path_2, array_index) )
+                        #eval(data_path_2).driver_add(prop, array_index)
+                        
+                        #This one works
+                        driver_new = bpy.context.object.pose.bones[nameFlipped].driver_add(prop, array_index)
+                        
+                        print("New Driver: Data_Path: %s; Array_Index: %d; Type: %s;" % (driver_new.data_path, driver_new.array_index, driver_new.driver.type) )
+                        
+                        reportString = "Done!"
+                        #break here is placeholder to just do 1 iteration
+                        break
+                    
+                    else:
+                        reportString = "Data_path didn't start with \"pose.bones\" "
+                        break
+                    
+                print(reportString + "\n")
+                self.report({'INFO'}, reportString)
+                
             
             else:
                 reportString = "Object[%s] has No Drivers" % (bpy.context.object.name)
@@ -559,6 +655,10 @@ class RIG_DEBUGGER_PT_CustomPanel1(bpy.types.Panel):
         
         row = col.row(align=True)
         row.operator("rig_debugger.debug", text="Mirror Driver Test").type = "MIRROR_DRIVER_TEST"
+        
+        row = col.row(align=True)
+        row.operator("rig_debugger.debug", icon="INFO", text="Mirror Driver Test Print").type = "MIRROR_DRIVER_TEST_PRINT"
+        
         """
         if ob.pose != None:
             row = col.row(align=True)

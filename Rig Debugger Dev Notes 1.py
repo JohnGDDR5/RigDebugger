@@ -22,8 +22,6 @@ bpy.context.object.pose.bones["Hoof.Front.Roll.Back.L"].rotation_euler[2]
 #Adds a driver
 bpy.context.object.pose.bones["Hoof.Front.Roll.Back.L"].driver_add('rotation_euler', 2)
 
-bpy.context.object.animation_data.drivers[0].driver_add('rotation_euler', 2)
-
 bruh = bpy.context.object.pose.bones["Hoof.Front.Roll.Back.L"].driver_add('rotation_euler', 2).driver
 bruh.type = 'SCRIPTED'
 
