@@ -95,7 +95,7 @@ def getDirection(string):
     side_new = 0
     
     #index is the index .rfind() found the last occurance in the String
-    index = 0
+    #index = 0
     
     #Only needs to use ".l" and ".r"
     for j in enumerate(sides[0:2]):
@@ -111,12 +111,12 @@ def getDirection(string):
                     #if last character is "left" or "right", or "left" / "right" is between two "." ex. ".left.001"
                     if rfound + 4 == len(case_low)-1 or between_dots == rfound + 5:
                         side = 2
-                        index = rfound
+                        #index = rfound
                         break
                 #if last character is "L" or "R", or "L" / "R" is between two "." ex. ".L.001"
                 elif rfound + 1 == len(case_low)-1 or between_dots == rfound + 2:
                     side = 0
-                    index = rfound
+                    #index = rfound
                     #print("rfound + 1: %d" % (rfound + 1) )
                     #print("len(case_low)-1: %d" % (len(case_low)-1) )
                     break
@@ -128,13 +128,13 @@ def getDirection(string):
                     #if last character is "left" or "right", or "left" / "right" is between two "." ex. ".right.001"
                     if rfound + 5 == len(case_low)-1 or between_dots == rfound + 6:
                         side = 3
-                        index = rfound
+                        #index = rfound
                         break
                 #elif rfound + 1 == len(case_low)-1:
                 #if last character is "L" or "R", or "L" / "R" is between two "." ex. ".R.001"
                 elif (rfound + 1 == len(case_low)-1 ) or between_dots == rfound + 2:
                     side = 1
-                    index = rfound
+                    #index = rfound
                     break
                 else:
                     break
@@ -257,6 +257,7 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
     def execute(self, context):
         scene = bpy.context.scene
         context = bpy.context
+        data = context.object.data
         props = scene.RD_Props
         
         #Fake "Deletes" Iterate Objects without an Object or Collection pointer
@@ -454,20 +455,23 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
             toggled = [0,0,0]
             
             bone_active = bpy.context.active_pose_bone
+            bones_selected = bpy.context.selected_pose_bones_from_active_object
             
             #If there is an active pose bone
             if bone_active != None:
+                bone_active_direction = getDirection(bone_active.name)
                 #Checks if active bone's name can be flipped
-                if getDirection(bone_active.name) != "":
+                if bone_active_direction != "":
                     #If there is at least one driver in object
                     if anim_data.drivers != None:
                         list_nothing = []
                         list_side = []
                         
-                        #bone name dictionary
+                        #bone name dictionary from drivers[].datapath
                         dict_1 = {}
                         
-                        dict_has_mirror = {}
+                        #dict_has_mirror = {}
+                        dict_direction = {}
                         
                         #gets all the drivers with .L or .R
                         for i in enumerate(anim_data.drivers):
@@ -508,7 +512,27 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                         
                         print("\nlen() of dict_1.keys(): %d" % (len(dict_1.keys())) )
                         
-                        #print("\n dict_1[0]: %d" % (dict_1.items()[0]) )
+                        """
+                        for i in dict_1.items():
+                            #checks if the getDirection returned includes ".l", slice is since ".left" has ".l"
+                            if getDirection(i[0]).find(bone_active_direction[0:2]) > -1:
+                                #Adds this bone to the dictionary with its index
+                                dict_direction[i[0]] = i[1]
+                                    
+                        #"""
+                        
+                        #for loop to only include selected pose bones in armature, not all of them
+                        for i in dict_1.items():
+                            #checks if the getDirection returned includes ".l", slice is since ".left" has ".l"
+                            if getDirection(i[0]).find(bone_active_direction[0:2]) > -1:
+                                
+                                #If bone is selected
+                                if data.bones[i[0]].select == True:
+                                    #Adds this bone to the dictionary with its index
+                                    dict_direction[i[0]] = i[1]
+                            #print(i[0])
+                        
+                        print("\ndict_direction.items(): %s" % (str(dict_direction.items())) )
                         
                         reportString = "Done!"
                             

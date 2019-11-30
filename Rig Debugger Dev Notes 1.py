@@ -22,6 +22,8 @@ bpy.context.object.pose.bones["Hoof.Front.Roll.Back.L"].rotation_euler[2]
 #Adds a driver
 bpy.context.object.pose.bones["Hoof.Front.Roll.Back.L"].driver_add('rotation_euler', 2)
 
+bpy.context.object.animation_data.drivers[0].driver_add('rotation_euler', 2)
+
 bruh = bpy.context.object.pose.bones["Hoof.Front.Roll.Back.L"].driver_add('rotation_euler', 2).driver
 bruh.type = 'SCRIPTED'
 
@@ -106,6 +108,9 @@ bpy.data.objects['Armature.1'].animation_data.drivers[0].color
 #Returns a color Color((1.0, 0.3999999761581421, 0.3999999761581421))
 
 
+#Armature Crap
+bpy.data.armatures['Armature'].bones["Thigh.Left"].select
+#Returns Boolean
 
 ##############
 #Old Notes
