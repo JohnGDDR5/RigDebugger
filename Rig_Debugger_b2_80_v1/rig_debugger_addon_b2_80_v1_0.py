@@ -83,6 +83,70 @@ def objectIcon(object):
                 
     return icon
 
+#Checks if a string has ".L, .R, .left, .right" to see if its flippable
+def getDirection(string):
+    
+    case_low = string.lower()
+    
+    sides = (".l", ".r", ".left", ".right")
+    # -1 to check if it changed, since .rfind() returns -1 if not found, 
+    side = -1
+    #side_new is the new flipped side index to use for sides[]
+    side_new = 0
+    
+    #index is the index .rfind() found the last occurance in the String
+    index = 0
+    
+    #Only needs to use ".l" and ".r"
+    for j in enumerate(sides[0:2]):
+        rfound = case_low.rfind( sides[j[0]] )
+        
+        #if "L" / "R" is between two "." ex. ".L.001"
+        between_dots = case_low.find(".", rfound+1)
+        
+        if rfound > -1:
+            #print("rfound: %d" % (rfound))
+            if j[1] == ".l":
+                if case_low.rfind( ".left", rfound ) > -1:
+                    #if last character is "left" or "right", or "left" / "right" is between two "." ex. ".left.001"
+                    if rfound + 4 == len(case_low)-1 or between_dots == rfound + 5:
+                        side = 2
+                        index = rfound
+                        break
+                #if last character is "L" or "R", or "L" / "R" is between two "." ex. ".L.001"
+                elif rfound + 1 == len(case_low)-1 or between_dots == rfound + 2:
+                    side = 0
+                    index = rfound
+                    #print("rfound + 1: %d" % (rfound + 1) )
+                    #print("len(case_low)-1: %d" % (len(case_low)-1) )
+                    break
+                else:
+                    break
+            elif j[1] == ".r":
+                #if (rfound+1) == len(string)-1:   
+                if case_low.rfind( ".right", rfound ) > -1:
+                    #if last character is "left" or "right", or "left" / "right" is between two "." ex. ".right.001"
+                    if rfound + 5 == len(case_low)-1 or between_dots == rfound + 6:
+                        side = 3
+                        index = rfound
+                        break
+                #elif rfound + 1 == len(case_low)-1:
+                #if last character is "L" or "R", or "L" / "R" is between two "." ex. ".R.001"
+                elif (rfound + 1 == len(case_low)-1 ) or between_dots == rfound + 2:
+                    side = 1
+                    index = rfound
+                    break
+                else:
+                    break
+        else:
+            pass
+    
+    #returns the side to flip
+    if side > -1:
+        return sides[side]
+    else:
+        return ""
+
 #Flip names of string with, (".l", ".r", ".left", ".right") upper or lower case.
 # the print() functions are commented, uncomment them for debugging.
 def flipNames(string):
@@ -94,8 +158,8 @@ def flipNames(string):
     sides = (".l", ".r", ".left", ".right")
     # -1 to check if it changed, since .rfind() returns -1 if not found, 
     side = -1
-    #Side2 is the new flipped side index to use for sides[]
-    side2 = 0
+    #side_new is the new flipped side index to use for sides[]
+    side_new = 0
     
     #index is the index .rfind() found the last occurance in the String
     index = 0
@@ -103,69 +167,84 @@ def flipNames(string):
     #Only needs to use ".l" and ".r"
     for j in enumerate(sides[0:2]):
         rfound = case_low.rfind( sides[j[0]] )
+        
+        #if "L" / "R" is between two "." ex. ".L.001"
+        between_dots = case_low.find(".", rfound+1)
+        
         if rfound > -1:
             #print("rfound: %d" % (rfound))
             if j[1] == ".l":
-                #if (rfound+1) == len(string)-1:   
                 if case_low.rfind( ".left", rfound ) > -1:
-                    side = 2
-                    index = rfound
-                    break
-                else:
+                    #if last character is "left" or "right", or "left" / "right" is between two "." ex. ".left.001"
+                    if rfound + 4 == len(case_low)-1 or between_dots == rfound + 5:
+                        side = 2
+                        index = rfound
+                        break
+                #if last character is "L" or "R", or "L" / "R" is between two "." ex. ".L.001"
+                elif rfound + 1 == len(case_low)-1 or between_dots == rfound + 2:
                     side = 0
                     index = rfound
+                    #print("rfound + 1: %d" % (rfound + 1) )
+                    #print("len(case_low)-1: %d" % (len(case_low)-1) )
+                    break
+                else:
                     break
             elif j[1] == ".r":
                 #if (rfound+1) == len(string)-1:   
                 if case_low.rfind( ".right", rfound ) > -1:
-                    side = 3
-                    index = rfound
-                    break
-                else:
+                    #if last character is "left" or "right", or "left" / "right" is between two "." ex. ".right.001"
+                    if rfound + 5 == len(case_low)-1 or between_dots == rfound + 6:
+                        side = 3
+                        index = rfound
+                        break
+                #elif rfound + 1 == len(case_low)-1:
+                #if last character is "L" or "R", or "L" / "R" is between two "." ex. ".R.001"
+                elif (rfound + 1 == len(case_low)-1 ) or between_dots == rfound + 2:
                     side = 1
                     index = rfound
                     break
+                else:
+                    break
         else:
-            #print("Side = -1")
             pass
-    
-    #print("Side 1: %d" % (side))
     
     #Switches the side index to the flipped one
     if side > -1:
         if side == 0:
             #case_flip = ".r"
-            side2 = 1
+            side_new = 1
         elif side == 1:
             #case_flip = ".l"
-            side2 = 0
+            side_new = 0
         elif side == 2:
-            side2 = 3
+            side_new = 3
         elif side == 3:
-            side2 = 2
+            side_new = 2
             
-        #print("Side 2: %d" % (side2))
-            
-        #The new flipped side
-        replace = sides[side2]
-        
-        #print("replace 1: %s" % (replace))
-            
-        #print("string[index+1]: %s; isUpper: %s" % (string[index+1], string[index+1].isupper()))
+        #replace = sides[side_new]
             
         #if the "l" or "r" for original string is uppercase, uppercase the letter in "replace" variable
         if string[index+1].isupper():
             
-            replace = "." + sides[side2][1:].capitalize()
+            #
+            replace = "." + sides[side_new][1:].capitalize()
+            #replace = sides[side_new].capitalize()
+            #replace[1].capitalize()
+            #replace[1] = replace[1].capitalize()
+           
             
-        #print("replace 2: %s" % (replace))
-        #print("string[:index]: %s" % (string[:index]))
-        #print("string[index+len(replace):]: %s" % (string[index+len(replace):]))
+        else:
+            #The new flipped side
+            replace = sides[side_new]
+            
+        print("replace: %s" % (str(replace)) )
             
         # adds text before, then the replace, and then any text that was after the .l or .r
         string = string[:index] + replace + string[index+len(sides[side]):]
         
-    return string
+        return string
+    else:
+        return ""
         
 class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
     bl_idname = "rig_debugger.debug"
@@ -260,7 +339,13 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
             print("\nFlipped Names of:")
             
             if bpy.context.active_pose_bone != None:
-                print("Active Pose Bone: %s" % (flipNames( bpy.context.active_pose_bone.name )) )
+                nameNormal = bpy.context.active_pose_bone.name
+                nameFlipped = flipNames( nameNormal )
+                
+                if nameFlipped != "":
+                    print("Active Pose Bone: %s" % (nameFlipped) )
+                else:
+                    print("\tName didn't flip: %s" % (nameNormal) )
                 
             if anim_data.drivers != None:
                 data_path = anim_data.drivers[0].data_path
@@ -269,12 +354,17 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                     
                     split = data_path.split('"', 2)
                     
-                    print("The 1st Driver: %s to %s" % (split[1], flipNames( split[1] )) )
+                    nameFlipped = flipNames( split[1] )
+                    
+                    if nameFlipped != "":
+                        print("The 1st Driver: %s to %s" % (split[1], flipNames(split[1])) )
+                    else:
+                        print("\tName didn't flip: %s" % (split[1]) )
                     
                 else:
                     print("\n Data_path didn't start with \"pose.bones\" \n")
             else:
-                print("\n There were 0 drivers on %s \n" % (ob.name))
+                print("\n There were 0 drivers on %s \n" % (ob.name) )
                 
             reportString = "Done!"
             self.report({'INFO'}, reportString)
@@ -310,32 +400,36 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                         nameNormal = split[1]
                         nameFlipped = flipNames( split[1] )
                         
-                        #print("split: %s" % (str(split)))
-                        #print(" split[1]: %s" % (str(split[1] )))
-                        
-                        #print("rsplit: %s" % (str(rsplit)))
-                        print(" prop: %s" % (str(prop)) )
-                        
-                        print("flipNames: %s" % (nameFlipped) )
-                        
-                        split[1] = nameFlipped
-                        
-                        print(" split Flipped: %s; Array_Index: %d" % (str(split), array_index) )
-                        
-                        
-                        #eval("bpy.context.object.pose.bones["+split[1]+"]."+prop])
-                        #data_path_2 = str("bpy.context.object.pose.bones[\""+split[1]+"\"]")
-                        #print("Data Path 2: %s; Array_Index: %d" % (data_path_2, array_index) )
-                        #eval(data_path_2).driver_add(prop, array_index)
-                        
-                        #This one works
-                        driver_new = bpy.context.object.pose.bones[nameFlipped].driver_add(prop, array_index)
-                        
-                        print("New Driver: Data_Path: %s; Array_Index: %d; Type: %s;" % (driver_new.data_path, driver_new.array_index, driver_new.driver.type) )
-                        
-                        reportString = "Done!"
-                        #break here is placeholder to just do 1 iteration
-                        break
+                        if nameFlipped != "":
+                            
+                            #print("split: %s" % (str(split)))
+                            #print(" split[1]: %s" % (str(split[1] )))
+                            
+                            #print("rsplit: %s" % (str(rsplit)))
+                            print(" prop: %s" % (str(prop)) )
+                            
+                            print("flipNames: %s" % (nameFlipped) )
+                            
+                            split[1] = nameFlipped
+                            
+                            print(" split Flipped: %s; Array_Index: %d" % (str(split), array_index) )
+                            
+                            
+                            #eval("bpy.context.object.pose.bones["+split[1]+"]."+prop])
+                            #data_path_2 = str("bpy.context.object.pose.bones[\""+split[1]+"\"]")
+                            #print("Data Path 2: %s; Array_Index: %d" % (data_path_2, array_index) )
+                            #eval(data_path_2).driver_add(prop, array_index)
+                            
+                            #This one works
+                            driver_new = bpy.context.object.pose.bones[nameFlipped].driver_add(prop, array_index)
+                            
+                            print("New Driver: Data_Path: %s; Array_Index: %d; Type: %s;" % (driver_new.data_path, driver_new.array_index, driver_new.driver.type) )
+                            
+                            reportString = "Done!"
+                            #break here is placeholder to just do 1 iteration
+                            break
+                        else:
+                            print("\tName didn't flip: %s" % (nameNormal) )
                     
                     else:
                         reportString = "Data_path didn't start with \"pose.bones\" "
@@ -351,6 +445,87 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                 print(reportString)
                 self.report({'INFO'}, reportString)
                 
+        elif self.type == "MIRROR_DRIVER_FROM_BONE_TEST_PRINT":
+            
+            anim_data = bpy.context.object.animation_data
+            direction = ("X", "Y", "Z")
+            
+            #For the Hidden, Muted, and Locked driver counts
+            toggled = [0,0,0]
+            
+            bone_active = bpy.context.active_pose_bone
+            
+            #If there is an active pose bone
+            if bone_active != None:
+                #Checks if active bone's name can be flipped
+                if getDirection(bone_active.name) != "":
+                    #If there is at least one driver in object
+                    if anim_data.drivers != None:
+                        list_nothing = []
+                        list_side = []
+                        
+                        #bone name dictionary
+                        dict_1 = {}
+                        
+                        dict_has_mirror = {}
+                        
+                        #gets all the drivers with .L or .R
+                        for i in enumerate(anim_data.drivers):
+                            data_path = i[1].data_path
+                            
+                            array_index = i[1].array_index
+                            #print("data_path: %s" % (data_path))
+                            #for i in enumerate(anim_data.drivers):
+                            if data_path.startswith('pose.bones') == True:
+                                
+                                split = data_path.split('"', 2)
+                                nameNormal = split[1]
+                                
+                                #print("split: %s" % (split) )
+                                #print("nameNormal: %s" % (nameNormal) )
+                                
+                                #if flippedNames() actually returns a flipped name, else it can't be flipped
+                                if flipNames(nameNormal) != "":
+                                    #name of bone and index of the bone's driver
+                                    dict_1[nameNormal] = i[0]
+                                    #"""
+                                    print("split: %s" % (split) )
+                                    print("nameNormal: %s" % (nameNormal) )
+                                    print("flipNames(nameNormal): %s" % (flipNames(nameNormal)) )
+                                    #"""
+                                    
+                                else:
+                                    pass
+                            else:
+                                print("Passed: %s" % (str(i)) )
+                                
+                        print("\nitems(): %s" % (str(dict_1.items())) )
+                        
+                        print("\nkeys(): %s" % (str(dict_1.keys())) )
+                        
+                        #
+                        print("\nlen() of dict_1: %d" % (len(dict_1)) )
+                        
+                        print("\nlen() of dict_1.keys(): %d" % (len(dict_1.keys())) )
+                        
+                        #print("\n dict_1[0]: %d" % (dict_1.items()[0]) )
+                        
+                        reportString = "Done!"
+                            
+                        print(reportString + "\n")
+                        self.report({'INFO'}, reportString)
+                        
+                    
+                    else:
+                        reportString = "Object[%s] has No Drivers" % (bpy.context.object.name)
+                else:
+                    reportString = "Active Bone Name [%s] can\'t be flipped" % (bone_active.name)
+            else:
+                reportString = "No Active Bone found"
+                
+            print(reportString)
+            self.report({'INFO'}, reportString)
+                
         elif self.type == "MIRROR_DRIVER_TEST_PRINT":
             
             anim_data = bpy.context.object.animation_data
@@ -362,19 +537,44 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
             if anim_data.drivers != None:
                 list_nothing = []
                 list_side = []
+                
+                #bone name dictionary
+                dict_1 = {}
+                
                 #gets all the drivers with .L or .R
                 for i in enumerate(anim_data.drivers):
                     data_path = i[1].data_path
                     
                     array_index = i[1].array_index
-                    print("data_path: %s" % (data_path))
+                    #print("data_path: %s" % (data_path))
                     #for i in enumerate(anim_data.drivers):
                     if data_path.startswith('pose.bones') == True:
-                        print()
+                        
+                        split = data_path.split('"', 2)
+                        nameNormal = split[1]
+                        
+                        #print("split: %s" % (split) )
+                        #print("nameNormal: %s" % (nameNormal) )
+                        
+                        #if flippedNames() actually returns a flipped name, else it can't be flipped
+                        if flipNames(nameNormal) != "":
+                            #name of bone and index of the bone's driver
+                            dict_1[nameNormal] = i[0]
+                            
+                            print("split: %s" % (split) )
+                            print("nameNormal: %s" % (nameNormal) )
+                            print("flipNames(nameNormal): %s" % (flipNames(nameNormal)) )
+                            
+                        else:
+                            pass
                     else:
                         print("Passed: %s" % (str(i)) )
+                        
+                print("\nitems(): %s" % (str(dict_1.items())) )
                 
+                print("\nkeys(): %s" % (str(dict_1.keys())) )
                 
+                """
                 for i in enumerate(anim_data.drivers):
                     #data_path = anim_data.drivers[i[0]].data_path
                     data_path = i[1].data_path
@@ -395,36 +595,42 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                         nameNormal = split[1]
                         nameFlipped = flipNames( split[1] )
                         
-                        #print("split: %s" % (str(split)))
-                        #print(" split[1]: %s" % (str(split[1] )))
-                        
-                        #print("rsplit: %s" % (str(rsplit)))
-                        print(" prop: %s" % (str(prop)) )
-                        
-                        print("flipNames: %s" % (nameFlipped) )
-                        
-                        split[1] = nameFlipped
-                        
-                        print(" split Flipped: %s; Array_Index: %d" % (str(split), array_index) )
-                        
-                        
-                        #eval("bpy.context.object.pose.bones["+split[1]+"]."+prop])
-                        #data_path_2 = str("bpy.context.object.pose.bones[\""+split[1]+"\"]")
-                        #print("Data Path 2: %s; Array_Index: %d" % (data_path_2, array_index) )
-                        #eval(data_path_2).driver_add(prop, array_index)
-                        
-                        #This one works
-                        driver_new = bpy.context.object.pose.bones[nameFlipped].driver_add(prop, array_index)
-                        
-                        print("New Driver: Data_Path: %s; Array_Index: %d; Type: %s;" % (driver_new.data_path, driver_new.array_index, driver_new.driver.type) )
-                        
-                        reportString = "Done!"
-                        #break here is placeholder to just do 1 iteration
-                        break
+                        if nameFlipped != "":
+                            
+                            #print("split: %s" % (str(split)))
+                            #print(" split[1]: %s" % (str(split[1] )))
+                            
+                            #print("rsplit: %s" % (str(rsplit)))
+                            print(" prop: %s" % (str(prop)) )
+                            
+                            print("flipNames: %s" % (nameFlipped) )
+                            
+                            split[1] = nameFlipped
+                            
+                            print(" split Flipped: %s; Array_Index: %d" % (str(split), array_index) )
+                            
+                            
+                            #eval("bpy.context.object.pose.bones["+split[1]+"]."+prop])
+                            #data_path_2 = str("bpy.context.object.pose.bones[\""+split[1]+"\"]")
+                            #print("Data Path 2: %s; Array_Index: %d" % (data_path_2, array_index) )
+                            #eval(data_path_2).driver_add(prop, array_index)
+                            
+                            #This one works
+                            driver_new = bpy.context.object.pose.bones[nameFlipped].driver_add(prop, array_index)
+                            
+                            print("New Driver: Data_Path: %s; Array_Index: %d; Type: %s;" % (driver_new.data_path, driver_new.array_index, driver_new.driver.type) )
+                            
+                            reportString = "Done!"
+                            #break here is placeholder to just do 1 iteration
+                            break
+                        else:
+                            print("\tName didn't flip: %s" % (nameNormal) )
                     
                     else:
                         reportString = "Data_path didn't start with \"pose.bones\" "
-                        break
+                        break """
+                    
+                reportString = "Done!"
                     
                 print(reportString + "\n")
                 self.report({'INFO'}, reportString)
@@ -435,49 +641,8 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                 
                 print(reportString)
                 self.report({'INFO'}, reportString)
-        """
-        #Mass deletion of every Iteration Object & their collections and objects inside them
-        elif self.type == "DELETE_NUKE":
-            
-            if props.collection_active is not None:
-                removedObjects = 0
-                removedCol = 0
                 
-                for i in enumerate(reversed(props.collections)):
-                    if i[1].collection is not None:
-                        for j in i[1].collection.objects:
-                            removedObjects += 1
-                            i[1].collection.objects.unlink(j)
-                            
-                        removedCol += 1
-                        #Removes collection, but not other links of it incase the user linked it
-                        bpy.data.collections.remove(i[1].collection, do_unlink=True)
-                        
-                    props.collections.remove(len(props.collections)-1)
-                    
-                colNameActive = props.collection_active.name
-                    
-                reportString = "Removed: [%s] & %d Objects & %d Collection Groups" % (colNameActive, removedObjects, removedCol)
                 
-                bpy.data.collections.remove(props.collection_active, do_unlink=True)
-                
-                print(reportString)
-                self.report({'INFO'}, reportString)
-            else:
-                #Removes scene.RD_Props.collections
-                for i in enumerate(reversed(props.collections)):
-                    props.collections.remove(len(props.collections)-1)
-                
-            print(reportString)
-            self.report({'INFO'}, reportString)
-                    
-            print("Before: "+str(before[::]))
-            
-            #Prints the last ammount of different Iterate Objects calculated
-            print("Removed: ( %d/%d ) Iterate Objects \n" % (len_diff, len_previous)) """
-            
-            
-            
         #Resets default settings
         self.type == "DEFAULT"
         
@@ -655,6 +820,9 @@ class RIG_DEBUGGER_PT_CustomPanel1(bpy.types.Panel):
         
         row = col.row(align=True)
         row.operator("rig_debugger.debug", text="Mirror Driver Test").type = "MIRROR_DRIVER_TEST"
+        
+        row = col.row(align=True)
+        row.operator("rig_debugger.debug", icon="BONE_DATA", text="Active Bone Mirror Driver Test").type = "MIRROR_DRIVER_FROM_BONE_TEST_PRINT"
         
         row = col.row(align=True)
         row.operator("rig_debugger.debug", icon="INFO", text="Mirror Driver Test Print").type = "MIRROR_DRIVER_TEST_PRINT"
