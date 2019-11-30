@@ -237,7 +237,7 @@ def flipNames(string):
             #The new flipped side
             replace = sides[side_new]
             
-        print("replace: %s" % (str(replace)) )
+        print("replace: %s; string: %s" % (str(replace), string) )
             
         # adds text before, then the replace, and then any text that was after the .l or .r
         string = string[:index] + replace + string[index+len(sides[side]):]
@@ -396,6 +396,7 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                         #1 allows for 1 splits in string, meaning 2 strings in the .split() list
                         rsplit = data_path.rsplit('.', 1)
                         
+                        #name of the bone's property that is driver ex. ".rotation_euler"
                         prop = rsplit[1]
                         
                         nameNormal = split[1]
@@ -526,11 +527,27 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                             #checks if the getDirection returned includes ".l", slice is since ".left" has ".l"
                             if getDirection(i[0]).find(bone_active_direction[0:2]) > -1:
                                 
-                                #If bone is selected
+                                #If bone is selected, add it
                                 if data.bones[i[0]].select == True:
                                     #Adds this bone to the dictionary with its index
                                     dict_direction[i[0]] = i[1]
                             #print(i[0])
+                            
+                        for i in dict_direction.items():
+                            if flipNames(i[0]) not in dict_1:
+                                driver_to_flip = anim_data.drivers[dict_1[i[0]] ]
+                                
+                                data_path = driver_to_flip.data_path
+                                
+                                #splits data_path to get property string name to drive ex. ".rotation_euler"
+                                rsplit = data_path.rsplit('.', 1)
+                                
+                                #name of the bone's property that is driver ex. ".rotation_euler"
+                                prop = rsplit[1]
+                                
+                                print("data_path: %s; index: %d" % (data_path, dict_1[i[0]]) )
+                                
+                                
                         
                         print("\ndict_direction.items(): %s" % (str(dict_direction.items())) )
                         
