@@ -236,8 +236,8 @@ def flipNames(string):
         else:
             #The new flipped side
             replace = sides[side_new]
-            
-        print("replace: %s; string: %s" % (str(replace), string) )
+        #Uncomment for debug stuff    
+        #print("replace: %s; string: %s" % (str(replace), string) )
             
         # adds text before, then the replace, and then any text that was after the .l or .r
         string = string[:index] + replace + string[index+len(sides[side]):]
@@ -461,6 +461,8 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
             #If there is an active pose bone
             if bone_active != None:
                 bone_active_direction = getDirection(bone_active.name)
+                print("bone_active_direction: %s" % (bone_active_direction))
+                
                 #Checks if active bone's name can be flipped
                 if bone_active_direction != "":
                     #If there is at least one driver in object
@@ -486,14 +488,30 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                                 split = data_path.split('"', 2)
                                 nameNormal = split[1]
                                 
+                                #splits data_path to get property string name to drive ex. ".rotation_euler"
+                                rsplit = data_path.rsplit('.', 1)
+                                
+                                #name of the bone's property that is driver ex. ".rotation_euler"
+                                prop = rsplit[1]
+                                
                                 #print("split: %s" % (split) )
                                 #print("nameNormal: %s" % (nameNormal) )
                                 
                                 #if flippedNames() actually returns a flipped name, else it can't be flipped
                                 if flipNames(nameNormal) != "":
                                     #name of bone and index of the bone's driver
-                                    dict_1[nameNormal] = i[0]
-                                    #"""
+                                    #dict_1[nameNormal] = i[0]
+                                    if nameNormal not in dict_1:
+                                        dict_1[nameNormal] = {}
+                                        
+                                    if prop not in dict_1[nameNormal]:
+                                        dict_1[nameNormal][prop] = {}
+                                        
+                                    #dict_1[nameNormal][prop].append([array_index, i[0]])
+                                    dict_1[nameNormal][prop][array_index] = i[0]
+                                    #dict_1[nameNormal] = i[0]
+                                    #dict_1[nameNormal][prop].append(i[0])
+                                    """
                                     print("split: %s" % (split) )
                                     print("nameNormal: %s" % (nameNormal) )
                                     print("flipNames(nameNormal): %s" % (flipNames(nameNormal)) )
@@ -533,8 +551,28 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                                     dict_direction[i[0]] = i[1]
                             #print(i[0])
                             
+                        print("\ndict_direction.items(): %s" % (str(dict_direction.items())) )
+                            
+                        """
                         for i in dict_direction.items():
                             if flipNames(i[0]) not in dict_1:
+                                driver_to_flip = anim_data.drivers[dict_1[i[0]] ]
+                                
+                                data_path = driver_to_flip.data_path
+                                
+                                #splits data_path to get property string name to drive ex. ".rotation_euler"
+                                rsplit = data_path.rsplit('.', 1)
+                                
+                                #name of the bone's property that is driver ex. ".rotation_euler"
+                                prop = rsplit[1]
+                                
+                                print("data_path: %s; index: %d" % (data_path, dict_1[i[0]]) ) 
+                        """
+                        for i in dict_direction.items():
+                            if flipNames(i[0]) not in dict_1:
+                                #goes through properties now ex. ".rotation_euler"
+                                for j in dict_1[i[0]].items():
+                                    print()
                                 driver_to_flip = anim_data.drivers[dict_1[i[0]] ]
                                 
                                 data_path = driver_to_flip.data_path
