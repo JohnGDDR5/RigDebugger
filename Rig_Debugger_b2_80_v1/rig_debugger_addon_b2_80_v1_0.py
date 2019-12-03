@@ -488,6 +488,8 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                                 split = data_path.split('"', 2)
                                 nameNormal = split[1]
                                 
+                                nameFlipped = flipNames(nameNormal)
+                                
                                 #splits data_path to get property string name to drive ex. ".rotation_euler"
                                 rsplit = data_path.rsplit('.', 1)
                                 
@@ -498,7 +500,7 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                                 #print("nameNormal: %s" % (nameNormal) )
                                 
                                 #if flippedNames() actually returns a flipped name, else it can't be flipped
-                                if flipNames(nameNormal) != "":
+                                if nameFlipped != "":
                                     #name of bone and index of the bone's driver
                                     #dict_1[nameNormal] = i[0]
                                     if nameNormal not in dict_1:
@@ -568,12 +570,22 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                                 
                                 print("data_path: %s; index: %d" % (data_path, dict_1[i[0]]) ) 
                         """
-                        for i in dict_direction.items():
-                            if flipNames(i[0]) not in dict_1:
+                        #for i in dict_direction.items():
+                        for i in dict_direction:
+                            print("i: %s" % (i))
+                            #nameFlipped = flipNames(i[0])
+                            nameFlipped = flipNames(i)
+                            #if the nameFlipped from dict_direction isn't in dict_1
+                            if nameFlipped not in dict_1:
                                 #goes through properties now ex. ".rotation_euler"
-                                for j in dict_1[i[0]].items():
-                                    print()
-                                driver_to_flip = anim_data.drivers[dict_1[i[0]] ]
+                                #for j in dict_1[i].items():
+                                for j in dict_1[i]:
+                                    print("j.items(%s): %s" % (j, dict_1[i].items()) )
+                                    print("j: %s" % (j) )
+                                    
+                                    for k in j:
+                                        print("k: %s" % (k) )
+                                driver_to_flip = anim_data.drivers[dict_1[i] ]
                                 
                                 data_path = driver_to_flip.data_path
                                 
@@ -583,7 +595,7 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                                 #name of the bone's property that is driver ex. ".rotation_euler"
                                 prop = rsplit[1]
                                 
-                                print("data_path: %s; index: %d" % (data_path, dict_1[i[0]]) )
+                                print("data_path: %s; index: %d" % (data_path, dict_1[i]) )
                                 
                                 
                         
@@ -632,17 +644,19 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                         split = data_path.split('"', 2)
                         nameNormal = split[1]
                         
+                        nameFlipped = flipNames(nameNormal)
+                        
                         #print("split: %s" % (split) )
                         #print("nameNormal: %s" % (nameNormal) )
                         
                         #if flippedNames() actually returns a flipped name, else it can't be flipped
-                        if flipNames(nameNormal) != "":
+                        if nameFlipped != "":
                             #name of bone and index of the bone's driver
                             dict_1[nameNormal] = i[0]
                             
                             print("split: %s" % (split) )
                             print("nameNormal: %s" % (nameNormal) )
-                            print("flipNames(nameNormal): %s" % (flipNames(nameNormal)) )
+                            print("flipNames(nameNormal): %s" % (nameFlipped) )
                             
                         else:
                             pass
