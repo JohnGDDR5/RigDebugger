@@ -474,7 +474,9 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                         dict_1 = {}
                         
                         #dict_has_mirror = {}
-                        dict_direction = {}
+                        #dict_direction = {}
+                        #instead of a copy of a dictionary, just have a list of strings of the names of the dictionary
+                        dict_direction = []
                         
                         #gets all the drivers with .L or .R
                         for i in enumerate(anim_data.drivers):
@@ -543,17 +545,21 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                         #"""
                         
                         #for loop to only include selected pose bones in armature, not all of them
-                        for i in dict_1.items():
+                        #for i in dict_1.items():
+                        for i in dict_1:
                             #checks if the getDirection returned includes ".l", slice is since ".left" has ".l"
-                            if getDirection(i[0]).find(bone_active_direction[0:2]) > -1:
+                            if getDirection(i).find(bone_active_direction[0:2]) > -1:
                                 
                                 #If bone is selected, add it
-                                if data.bones[i[0]].select == True:
+                                if data.bones[i].select == True:
                                     #Adds this bone to the dictionary with its index
-                                    dict_direction[i[0]] = i[1]
+                                    #dict_direction[i[0]] = i[1]
+                                    dict_direction.append(i)
+                                    
                             #print(i[0])
                             
-                        print("\ndict_direction.items(): %s" % (str(dict_direction.items())) )
+                        #print("\ndict_direction.items(): %s" % (str(dict_direction.items())) )
+                        print("\ndict_direction.items(): %s" % (str(dict_direction)) )
                             
                         """
                         for i in dict_direction.items():
@@ -583,23 +589,31 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                                     print("j.items(%s): %s" % (j, dict_1[i].items()) )
                                     print("j: %s" % (j) )
                                     
-                                    for k in j:
+                                    for k in dict_1[i][j]:
                                         print("k: %s" % (k) )
-                                driver_to_flip = anim_data.drivers[dict_1[i] ]
-                                
-                                data_path = driver_to_flip.data_path
-                                
-                                #splits data_path to get property string name to drive ex. ".rotation_euler"
-                                rsplit = data_path.rsplit('.', 1)
-                                
-                                #name of the bone's property that is driver ex. ".rotation_euler"
-                                prop = rsplit[1]
-                                
-                                print("data_path: %s; index: %d" % (data_path, dict_1[i]) )
+                                        
+                                        index_driver = dict_1[i][j][k]
+                                        
+                                        driver_to_flip = anim_data.drivers[index_driver]
+                                        #driver_to_flip = anim_data.drivers[dict_1[i] ]
+                                        
+                                        data_path = driver_to_flip.data_path
+                                        
+                                        #splits data_path to get property string name to drive ex. ".rotation_euler"
+                                        rsplit = data_path.rsplit('.', 1)
+                                        
+                                        #name of the bone's property that is driver ex. ".rotation_euler"
+                                        prop = rsplit[1]
+                                        
+                                        print("data_path: %s; index: %d" % (data_path, index_driver) )
+                                        
+                                        #This adds the new driver
+                                        driver_new = bpy.context.object.pose.bones[nameFlipped].driver_add(j, k)
                                 
                                 
                         
-                        print("\ndict_direction.items(): %s" % (str(dict_direction.items())) )
+                        #print("\ndict_direction.items(): %s" % (str(dict_direction.items())) )
+                        print("\ndict_direction.items(): %s" % (str(dict_direction)) )
                         
                         reportString = "Done!"
                             
