@@ -473,8 +473,6 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                         #bone name dictionary from drivers[].datapath
                         dict_1 = {}
                         
-                        #dict_has_mirror = {}
-                        #dict_direction = {}
                         #instead of a copy of a dictionary, just have a list of strings of the names of the dictionary
                         dict_direction = []
                         
@@ -560,22 +558,7 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                             
                         #print("\ndict_direction.items(): %s" % (str(dict_direction.items())) )
                         print("\ndict_direction.items(): %s" % (str(dict_direction)) )
-                            
-                        """
-                        for i in dict_direction.items():
-                            if flipNames(i[0]) not in dict_1:
-                                driver_to_flip = anim_data.drivers[dict_1[i[0]] ]
-                                
-                                data_path = driver_to_flip.data_path
-                                
-                                #splits data_path to get property string name to drive ex. ".rotation_euler"
-                                rsplit = data_path.rsplit('.', 1)
-                                
-                                #name of the bone's property that is driver ex. ".rotation_euler"
-                                prop = rsplit[1]
-                                
-                                print("data_path: %s; index: %d" % (data_path, dict_1[i[0]]) ) 
-                        """
+                        
                         #for i in dict_direction.items():
                         for i in dict_direction:
                             print("i: %s" % (i))
@@ -585,32 +568,65 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                             if nameFlipped not in dict_1:
                                 #goes through properties now ex. ".rotation_euler"
                                 #for j in dict_1[i].items():
-                                for j in dict_1[i]:
-                                    print("j.items(%s): %s" % (j, dict_1[i].items()) )
-                                    print("j: %s" % (j) )
-                                    
-                                    for k in dict_1[i][j]:
-                                        print("k: %s" % (k) )
-                                        
-                                        index_driver = dict_1[i][j][k]
-                                        
-                                        driver_to_flip = anim_data.drivers[index_driver]
-                                        #driver_to_flip = anim_data.drivers[dict_1[i] ]
-                                        
-                                        data_path = driver_to_flip.data_path
-                                        
-                                        #splits data_path to get property string name to drive ex. ".rotation_euler"
-                                        rsplit = data_path.rsplit('.', 1)
-                                        
-                                        #name of the bone's property that is driver ex. ".rotation_euler"
-                                        prop = rsplit[1]
-                                        
-                                        print("data_path: %s; index: %d" % (data_path, index_driver) )
-                                        
-                                        #This adds the new driver
-                                        driver_new = bpy.context.object.pose.bones[nameFlipped].driver_add(j, k)
                                 
+                                #Checks if nameFlipped is a bone in the armature
+                                if data.bones.get(nameFlipped) is not None:
+                                    for j in dict_1[i]:
+                                        print("j.items(%s): %s" % (j, dict_1[i].items()) )
+                                        print("j: %s" % (j) )
+                                        
+                                        for k in dict_1[i][j]:
+                                            print("k: %s" % (k) )
+                                            
+                                            index_driver = dict_1[i][j][k]
+                                            
+                                            driver_to_flip = anim_data.drivers[index_driver]
+                                            #driver_to_flip = anim_data.drivers[dict_1[i] ]
+                                            
+                                            data_path = driver_to_flip.data_path
+                                            
+                                            #splits data_path to get property string name to drive ex. ".rotation_euler"
+                                            rsplit = data_path.rsplit('.', 1)
+                                            
+                                            #name of the bone's property that is driver ex. ".rotation_euler"
+                                            prop = rsplit[1]
+                                            
+                                            print("data_path: %s; index: %d" % (data_path, index_driver) )
+                                            
+                                            #This adds the new driver
+                                            driver_new = bpy.context.object.pose.bones[nameFlipped].driver_add(j, k)
+                                            
+                                            print("Added Driver: %s; Prop: %s; Index: %d" % (nameFlipped, j, k))
+                                            
+                                            #This changes the driver_new's properties
+                                            driver_new.driver.type = driver_to_flip.driver.type
+                                            
+                                            #This bottom section is for 
+                                            driver_new_vars = driver_new.driver.variables
+                                            #driver_vars is variables of driver_to_flip
+                                            driver_vars = driver_to_flip.driver.variables
+                                            print("variables: %d" % (len(driver_vars)))
+                                            
+                                            #print("" % ())
+                                            
+                                            if len(driver_vars) > 0:
+                                                for m in enumerate(driver_vars):
+                                                    print("Var[%d]: \"%s\"; Targets: %d" % (m[0], m[1].name, len(m[1].targets)))
+                                                    
+                                                    new_var = driver_new_vars.new()
+                                                    
+                                                    new_var.name = m[1].name
+                                                    
+                                                    for p in enumerate(m[1].targets):
+                                                        print("%d: transform_type: %s" % (p[0], p[1].transform_type))
+                                                        
+                                            else:
+                                                print("No Variables")
+                                            
+                                            
                                 
+                                else:
+                                    print("\"%s\" isn\'t a bone" % (nameFlipped))
                         
                         #print("\ndict_direction.items(): %s" % (str(dict_direction.items())) )
                         print("\ndict_direction.items(): %s" % (str(dict_direction)) )
@@ -680,62 +696,6 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                 print("\nitems(): %s" % (str(dict_1.items())) )
                 
                 print("\nkeys(): %s" % (str(dict_1.keys())) )
-                
-                """
-                for i in enumerate(anim_data.drivers):
-                    #data_path = anim_data.drivers[i[0]].data_path
-                    data_path = i[1].data_path
-                    #array_index = anim_data.drivers[i[0]].array_index
-                    array_index = i[1].array_index
-                    print("data_path: %s" % (data_path))
-                    
-                    #print('"pose.bones": %s' % (str(data_path.startswith('pose.bones'))))
-                    
-                    if data_path.startswith('pose.bones') == True:
-                        #2 allows for 2 splits in string, meaning 3 strings in the .split() list
-                        split = data_path.split('"', 2)
-                        #1 allows for 1 splits in string, meaning 2 strings in the .split() list
-                        rsplit = data_path.rsplit('.', 1)
-                        
-                        prop = rsplit[1]
-                        
-                        nameNormal = split[1]
-                        nameFlipped = flipNames( split[1] )
-                        
-                        if nameFlipped != "":
-                            
-                            #print("split: %s" % (str(split)))
-                            #print(" split[1]: %s" % (str(split[1] )))
-                            
-                            #print("rsplit: %s" % (str(rsplit)))
-                            print(" prop: %s" % (str(prop)) )
-                            
-                            print("flipNames: %s" % (nameFlipped) )
-                            
-                            split[1] = nameFlipped
-                            
-                            print(" split Flipped: %s; Array_Index: %d" % (str(split), array_index) )
-                            
-                            
-                            #eval("bpy.context.object.pose.bones["+split[1]+"]."+prop])
-                            #data_path_2 = str("bpy.context.object.pose.bones[\""+split[1]+"\"]")
-                            #print("Data Path 2: %s; Array_Index: %d" % (data_path_2, array_index) )
-                            #eval(data_path_2).driver_add(prop, array_index)
-                            
-                            #This one works
-                            driver_new = bpy.context.object.pose.bones[nameFlipped].driver_add(prop, array_index)
-                            
-                            print("New Driver: Data_Path: %s; Array_Index: %d; Type: %s;" % (driver_new.data_path, driver_new.array_index, driver_new.driver.type) )
-                            
-                            reportString = "Done!"
-                            #break here is placeholder to just do 1 iteration
-                            break
-                        else:
-                            print("\tName didn't flip: %s" % (nameNormal) )
-                    
-                    else:
-                        reportString = "Data_path didn't start with \"pose.bones\" "
-                        break """
                     
                 reportString = "Done!"
                     

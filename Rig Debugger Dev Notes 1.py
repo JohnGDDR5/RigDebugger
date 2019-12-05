@@ -12,6 +12,10 @@ if d.data_path.startswith('pose.bones'):
         if id == pb.name and prop == 'location':
             break
 
+2. Need to add functions that can 
+    1. Sort the drivers by .L/.R and middle names, by using the bpy.ops.anim.channels_move(direction='UP') operators. I might have to add another panel inside the Driver Editor Window 
+    2. Automatically change the color_modes of every driver. Since it isn't an option in the UI
+
 #New Notes
 ##############
 
