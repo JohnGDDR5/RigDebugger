@@ -58,6 +58,12 @@ bpy.context.object.animation_data.drivers[0].driver.type
 bpy.context.object.animation_data.drivers[0].driver.use_self
 #Returns boolean, False or True
 
+bpy.context.object.animation_data.drivers[0].color_mode
+#Returns 'AUTO_RGB'
+
+bpy.context.object.animation_data.drivers[16].auto_smoothing
+#Returns 'CONT_ACCEL'
+
 len(bpy.data.objects['Armature.1'].animation_data.drivers)
 #Returns number of drivers in the object
 
