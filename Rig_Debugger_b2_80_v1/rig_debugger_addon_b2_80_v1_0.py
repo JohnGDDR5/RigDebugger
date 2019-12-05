@@ -84,7 +84,7 @@ def objectIcon(object):
     return icon
 
 #Checks if a string has ".L, .R, .left, .right" to see if its flippable
-def getDirection(string):
+def getDirection(string, flip=False):
     
     case_low = string.lower()
     
@@ -143,6 +143,19 @@ def getDirection(string):
     
     #returns the side to flip
     if side > -1:
+        #Switches the side index to the flipped one, if it is told to do so
+        if flip == True:
+            if side == 0:
+                #case_flip = ".r"
+                side_new = 1
+            elif side == 1:
+                #case_flip = ".l"
+                side_new = 0
+            elif side == 2:
+                side_new = 3
+            elif side == 3:
+                side_new = 2
+                
         return sides[side]
     else:
         return ""
@@ -447,7 +460,7 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                 print(reportString)
                 self.report({'INFO'}, reportString)
                 
-        elif self.type == "MIRROR_DRIVER_FROM_BONE_TEST_PRINT":
+        elif self.type == "MIRROR_DRIVER_FROM_BONE_TEST_PRINT" or self.type == "MIRROR_DRIVER_FROM_DIRECTION":
             
             anim_data = bpy.context.object.animation_data
             direction = ("X", "Y", "Z")
@@ -512,6 +525,7 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                             else:
                                 print("Passed: %s" % (str(i)) )
                                 
+                        """
                         print("\nitems(): %s" % (str(dict_1.items())) )
                         
                         print("\nkeys(): %s" % (str(dict_1.keys())) )
@@ -519,17 +533,42 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                         print("\nlen() of dict_1: %d" % (len(dict_1)) )
                         
                         print("\nlen() of dict_1.keys(): %d" % (len(dict_1.keys())) )
-                        
-                        #for loop to only include selected pose bones in armature, not all of them
-                        for i in dict_1:
-                            #checks if the getDirection returned includes ".l", slice is since ".left" has ".l"
-                            if getDirection(i).find(bone_active_direction[0:2]) > -1:
+                        """
+                        if self.type == "MIRROR_DRIVER_FROM_BONE_TEST_PRINT":
+                            #for loop to only include selected pose bones in armature, not all of them
+                            for i in dict_1:
+                                #checks if the getDirection returned includes ".l", slice is since ".left" has ".l"
+                                if getDirection(i).find(bone_active_direction[0:2]) > -1:
+                                    
+                                    #If bone is selected, add it
+                                    if data.bones[i].select == True:
+                                        #Adds this bone to the dictionary with its index
+                                        #dict_direction[i[0]] = i[1]
+                                        dict_direction.append(i)
+                        else:
+                            #for loop to only include selected pose bones in armature, but takes into account the direction selected in operator
+                            for i in dict_1:
+                                mirror_direction = props.mirror_direction
+                                #slice will turn "LEFT" to "l" and lowercase it
+                                to_find = mirror_direction[0:1].lower()
                                 
+                                flip_name = flipNames(i)
+                                print("to_find: %s" % (to_find))
+                                print("getDirection(i, flip=True): %s" % (getDirection(i, flip=True)))
+                                print("flip_name not in dict_direction: %r" % (flip_name not in dict_direction))
                                 #If bone is selected, add it
                                 if data.bones[i].select == True:
-                                    #Adds this bone to the dictionary with its index
-                                    #dict_direction[i[0]] = i[1]
-                                    dict_direction.append(i)
+                                    #if getDirection(i).find(bone_active_direction[0:2]) > -1:
+                                    if getDirection(i)[1:].find(to_find) > -1:
+                                        #Checks if the flipped name is already there
+                                        if i not in dict_direction:
+                                            dict_direction.append(i)
+                                    #Checks if the flipped bone name is of mirror_direction
+                                    elif getDirection(i, flip=True)[1:].find(to_find) > -1:
+                                        flip_name = flipNames(i)
+                                        #Checks if the flipped name is already there
+                                        if flip_name not in dict_direction:
+                                            dict_direction.append(flip_name)
                             
                         #print("\ndict_direction.items(): %s" % (str(dict_direction.items())) )
                         print("\ndict_direction.items(): %s" % (str(dict_direction)) )
@@ -630,6 +669,7 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                                                     print("Removed m[1] variable: %s" % (m[1].name))
                                                     driver_new_vars.remove(m[1])
                                                 
+                                            #This mirrors the keyframes of the drivers
                                             for m in enumerate(driver_to_flip.keyframe_points):
                                                 old_frame = m[1].co[0]
                                                 old_value = m[1].co[1]
@@ -638,26 +678,19 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                                                 keyf_name.interpolation = m[1].interpolation
                                                 
                                                 #Left/Right handles of keyframe
-                                                keyf_name.handle_right_type = m[1].handle_right_type
-                                                
-                                                #keyf_name.handle_left_type = m[1].handle_left_type
-                                                
-                                                #keyf_name.handle_right_type = m[1].handle_right_type
+                                                #handle_left
+                                                keyf_name.handle_left_type = m[1].handle_left_type
                                                 
                                                 keyf_name.handle_left[0] = m[1].handle_left[0]
                                                 keyf_name.handle_left[1] = m[1].handle_left[1]
                                                 
-                                                #keyf_name.handle_left_type = m[1].handle_left_type
-                                                
-                                                #keyf_name.handle_right_type = m[1].handle_right_type
+                                                #handle_right
+                                                keyf_name.handle_right_type = m[1].handle_right_type
                                                 
                                                 keyf_name.handle_right[0] = m[1].handle_right[0]
                                                 keyf_name.handle_right[1] = m[1].handle_right[1]
-                                                
-                                                keyf_name.handle_left_type = m[1].handle_left_type
-                                                
-                                                #keyf_name.handle_right_type = m[1].handle_right_type
                                                     
+                                            #This mirrors the driver
                                             for m in enumerate(driver_vars):
                                                 print("  Var[%d]: \"%s\"; Targets: %d" % (m[0], m[1].name, len(m[1].targets)))
                                                 
@@ -667,8 +700,6 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                                                 new_var.type = m[1].type
                                                 
                                                 if new_var.type == 'SINGLE_PROP':
-                                                    #new_var.id_type = m[1].id_type
-                                                    #new_var.transform_type = m[1].transform_type
                                                     
                                                     new_var.targets[0].id_type = m[1].targets[0].id_type
                                                     new_var.targets[0].id = m[1].targets[0].id
@@ -697,13 +728,13 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                                                                     target_p.bone_target = p[1].bone_target
                                                                     print("  \"%s\" isn\'t a bone" % (p[1].bone_target) )
                                                                     
-                                                        if new_var.type == 'TRANSFORMS':
-                                                            target_p.transform_type = p[1].transform_type
-                                                            target_p.rotation_mode = p[1].rotation_mode
-                                                            target_p.transform_space = p[1].transform_space
+                                                        #if new_var.type == 'TRANSFORMS':
+                                                        target_p.transform_type = p[1].transform_type
+                                                        target_p.rotation_mode = p[1].rotation_mode
+                                                        target_p.transform_space = p[1].transform_space
                                                         
-                                                        elif new_var.type == 'LOC_DIFF':
-                                                            target_p.transform_space = p[1].transform_space
+                                                        #elif new_var.type == 'LOC_DIFF':
+                                                        #    target_p.transform_space = p[1].transform_space
                                                         
                                                         print("  %d: transform_type: %s" % (p[0], p[1].transform_type))
                                                         
@@ -976,6 +1007,13 @@ class RIG_DEBUGGER_PT_CustomPanel1(bpy.types.Panel):
         row.operator("rig_debugger.debug", icon="BONE_DATA", text="Active Bone Mirror Driver Test").type = "MIRROR_DRIVER_FROM_BONE_TEST_PRINT"
         
         row = col.row(align=True)
+        row.operator("rig_debugger.debug", icon="BONE_DATA", text="Mirror Driver  From Direction").type = "MIRROR_DRIVER_FROM_DIRECTION"
+        
+        row = col.row(align=True)
+        row.prop(props, "mirror_direction", emboss= True, expand= True, icon="NONE")
+        
+        
+        row = col.row(align=True)
         row.prop(props, "override_existing_drivers", text="", emboss= True, icon="NONE")#"DECORATE_OVERRIDE")
         row.prop(props, "override_existing_drivers", text="Override Existing Drivers", emboss= False, icon="DECORATE_OVERRIDE")
         
@@ -1108,6 +1146,11 @@ class RIG_DEBUGGER_PreferencesMenu(bpy.types.AddonPreferences):
 class RIG_DEBUGGER_Props(bpy.types.PropertyGroup):
     #Tries to set collection_parent's default to Master Collection
     override_existing_drivers: bpy.props.BoolProperty(name="Override Existing Drivers", description="Overrides the drivers of the existing flipped driver", default=False)
+    
+    listDesc0 =  ["Displays List in order of how many duplicates each object has", "Displays List in the order they were created"]
+    
+    mirror_direction: bpy.props.EnumProperty(name="Mirror Direction", items= [("LEFT", "Left", listDesc0[0]), ("RIGHT", "Right", listDesc0[1])], description="Bone Name Direction to Mirror Drivers from", default="LEFT")#, update=ListOrderUpdate)
+    
     #Dropdown for Iterate Display
     dropdown_1: bpy.props.BoolProperty(name="Dropdown", description="Show Props of all Drivers", default=True)
     
