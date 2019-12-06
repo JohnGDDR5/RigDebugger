@@ -147,16 +147,17 @@ def getDirection(string, flip=False):
         if flip == True:
             if side == 0:
                 #case_flip = ".r"
-                side_new = 1
+                side = 1
             elif side == 1:
                 #case_flip = ".l"
-                side_new = 0
+                side = 0
             elif side == 2:
-                side_new = 3
+                side = 3
             elif side == 3:
-                side_new = 2
+                side = 2
                 
-        return sides[side]
+        #Removes the "." from the beginning
+        return sides[side][1:]
     else:
         return ""
 
@@ -255,6 +256,8 @@ def flipNames(string):
         # adds text before, then the replace, and then any text that was after the .l or .r
         string = string[:index] + replace + string[index+len(sides[side]):]
         
+        #Removes the "." from the beginning
+        #return string[1:]
         return string
     else:
         return ""
@@ -502,7 +505,7 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                                 nameNormal = split[1]
                                 
                                 nameFlipped = flipNames(nameNormal)
-                                
+                                print("nameNormal: %s; nameFlipped: %s;" % (str(nameNormal), str(nameFlipped)) )
                                 #splits data_path to get property string name to drive ex. ".rotation_euler"
                                 rsplit = data_path.rsplit('.', 1)
                                 
@@ -533,47 +536,69 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                         print("\nlen() of dict_1: %d" % (len(dict_1)) )
                         
                         print("\nlen() of dict_1.keys(): %d" % (len(dict_1.keys())) )
+                        
+                        #Checks if nameFlipped is a bone in the armature
+                        if data.bones.get(nameFlipped) is not None:
+                        
+                        else:
+                            print("Bone Name \"%s\" isn\'t a bone." % (str(nameFlipped)) )
+                        
                         """
                         if self.type == "MIRROR_DRIVER_FROM_BONE_TEST_PRINT":
                             #for loop to only include selected pose bones in armature, not all of them
                             for i in dict_1:
-                                #checks if the getDirection returned includes ".l", slice is since ".left" has ".l"
-                                if getDirection(i).find(bone_active_direction[0:2]) > -1:
-                                    
-                                    #If bone is selected, add it
-                                    if data.bones[i].select == True:
+                                #If bone is selected, add it
+                                if data.bones[i].select == True:
+                                    #checks if the getDirection returned includes ".l", slice is since ".left" has ".l"
+                                    #if getDirection(i).find(bone_active_direction[0:2]) > -1:
+                                    if getDirection(i).find(bone_active_direction[0]) > -1:
                                         #Adds this bone to the dictionary with its index
                                         #dict_direction[i[0]] = i[1]
                                         dict_direction.append(i)
                         else:
                             #for loop to only include selected pose bones in armature, but takes into account the direction selected in operator
+                            print("props.mirror_direction: %s" % (props.mirror_direction))
+                            mirror_direction = props.mirror_direction
+                            #slice will turn "LEFT" to "l" and lowercase it
+                            #to_find = mirror_direction[0:1].lower()
+                            to_find = mirror_direction[0].lower()
+                            print("to_find: %s" % (to_find))
+                            
                             for i in dict_1:
-                                mirror_direction = props.mirror_direction
-                                #slice will turn "LEFT" to "l" and lowercase it
-                                to_find = mirror_direction[0:1].lower()
-                                
                                 flip_name = flipNames(i)
-                                print("to_find: %s" % (to_find))
-                                print("getDirection(i, flip=True): %s" % (getDirection(i, flip=True)))
-                                print("flip_name not in dict_direction: %r" % (flip_name not in dict_direction))
-                                #If bone is selected, add it
-                                if data.bones[i].select == True:
+                                
+                                print("getDir(\"%s\"): %s; Flip: %s" % (i, getDirection(i), getDirection(i, flip=True)) )
+                                #print("flip_name not in dict_direction: %s = %r" % (flip_name, flip_name not in dict_direction))
+                                #If bone is selected, or its mirror exists, and its mirror is selected
+                                if data.bones[i].select == True or (data.bones.get(flip_name) is not None and data.bones[flip_name].select == True):
                                     #if getDirection(i).find(bone_active_direction[0:2]) > -1:
-                                    if getDirection(i)[1:].find(to_find) > -1:
+                                    #if getDirection(i)[1:].find(to_find) > -1:
+                                    if getDirection(i).find(to_find) > -1:
                                         #Checks if the flipped name is already there
-                                        if i not in dict_direction:
+                                        boolean = i not in dict_direction
+                                        if boolean:
                                             dict_direction.append(i)
+                                            
+                                        print("%s = %r" % (i, boolean))
+                                    """
                                     #Checks if the flipped bone name is of mirror_direction
-                                    elif getDirection(i, flip=True)[1:].find(to_find) > -1:
+                                    #elif getDirection(i, flip=True)[1:].find(to_find) > -1:
+                                    elif getDirection(i, flip=True).find(to_find) > -1:
                                         flip_name = flipNames(i)
+                                        
+                                        boolean = flip_name not in dict_direction
                                         #Checks if the flipped name is already there
-                                        if flip_name not in dict_direction:
+                                        if boolean:
                                             dict_direction.append(flip_name)
+                                            
+                                        print("(flipped)%s = %r" % (flip_name, boolean))
+                                        
+                                    print("getDirection(i).find(to_find): %s; Flipped: %s" % (getDirection(i).find(to_find), getDirection(i, flip=True).find(to_find)) ) """
                             
                         #print("\ndict_direction.items(): %s" % (str(dict_direction.items())) )
                         print("\ndict_direction.items(): %s" % (str(dict_direction)) )
                         
-                        #for i in dict_direction.items():
+                        #For loop to mirror all drivers, and f-curves of selected bones's drivers in dict_direction
                         for i in dict_direction:
                             #print("i: %s" % (i))
                             #nameFlipped = flipNames(i[0])
@@ -716,13 +741,13 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                                                         
                                                         #Checks if target.id has object & object is type "Armature"
                                                         if target_p.id is not None and target_p.id.type == 'ARMATURE':
-                                                            #This one checks if nameFlipped of bone exists to flip it
+                                                            #This one checks if nameFlipped2 of bone exists to flip it
                                                             if p[1].bone_target != "":
-                                                                nameFlipped = flipNames(p[1].bone_target)
+                                                                nameFlipped2 = flipNames(p[1].bone_target)
                                                                 
                                                                 #Flips bone name if mirror it exist
-                                                                if data.bones.get(nameFlipped ) is not None:
-                                                                    target_p.bone_target = nameFlipped
+                                                                if data.bones.get(nameFlipped2 ) is not None:
+                                                                    target_p.bone_target = nameFlipped2
                                                                 #Uses unflipped bone name if flipped isn't found
                                                                 else:
                                                                     target_p.bone_target = p[1].bone_target
