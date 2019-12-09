@@ -466,338 +466,7 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                 
                 print(reportString)
                 self.report({'INFO'}, reportString)
-                
-                
-        #Resets default settings
-        self.type == "DEFAULT"
         
-        return {'FINISHED'}
-        
-class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
-    bl_idname = "rig_debugger.driver_mirror"
-    bl_label = "Iterate Objects Debugging Operators"
-    bl_description = "To assist with debugging and development"
-    bl_options = {'UNDO',}
-    type: bpy.props.StringProperty(default="DEFAULT")
-    #index: bpy.props.IntProperty(default=0, min=0)
-    
-    def execute(self, context):
-        scene = bpy.context.scene
-        context = bpy.context
-        data = context.object.data
-        props = scene.RD_Props
-        
-        if self.type == "MIRROR_FROM_ACTIVE_BONE" or self.type == "MIRROR_FROM_DIRECTION":
-            
-            anim_data = bpy.context.object.animation_data
-            direction = ("X", "Y", "Z")
-            
-            #For the Hidden, Muted, and Locked driver counts
-            toggled = [0,0,0]
-            
-            bone_active = bpy.context.active_pose_bone
-            bones_selected = bpy.context.selected_pose_bones_from_active_object
-            
-            #If there is an active pose bone
-            if bone_active != None:
-                bone_active_direction = getDirection(bone_active.name)
-                print("bone_active_direction: %s" % (bone_active_direction))
-                
-                #Checks if active bone's name can be flipped
-                if bone_active_direction != "":
-                    #If there is at least one driver in object
-                    if anim_data.drivers != None:
-                        list_nothing = []
-                        list_side = []
-                        
-                        #bone name dictionary from drivers[].datapath
-                        dict_1 = {}
-                        
-                        #instead of a copy of a dictionary, just have a list of strings of the names of the dictionary
-                        dict_direction = []
-                        
-                        #gets all the drivers with .L or .R
-                        for i in enumerate(anim_data.drivers):
-                            data_path = i[1].data_path
-                            
-                            array_index = i[1].array_index
-                            
-                            #Checks if driver is from a "pose.bone"
-                            if data_path.startswith('pose.bones') == True:
-                                
-                                split = data_path.split('"', 2)
-                                nameNormal = split[1]
-                                
-                                nameFlipped = flipNames(nameNormal)
-                                print("nameNormal: %s; nameFlipped: %s;" % (str(nameNormal), str(nameFlipped)) )
-                                #splits data_path to get property string name to drive ex. ".rotation_euler"
-                                rsplit = data_path.rsplit('.', 1)
-                                
-                                #name of the bone's property that is driver ex. ".rotation_euler"
-                                prop = rsplit[1]
-                                
-                                #if flippedNames() actually returns a flipped name, else it can't be flipped
-                                if nameFlipped != "":
-                                    #name of bone and index of the bone's driver
-                                    if nameNormal not in dict_1:
-                                        dict_1[nameNormal] = {}
-                                        
-                                    if prop not in dict_1[nameNormal]:
-                                        dict_1[nameNormal][prop] = {}
-                                        
-                                    dict_1[nameNormal][prop][array_index] = i[0]
-                                    
-                                else:
-                                    pass
-                            else:
-                                print("Passed: %s" % (str(i)) )
-                                
-                        """
-                        print("\nitems(): %s" % (str(dict_1.items())) )
-                        
-                        print("\nkeys(): %s" % (str(dict_1.keys())) )
-                        
-                        print("\nlen() of dict_1: %d" % (len(dict_1)) )
-                        
-                        print("\nlen() of dict_1.keys(): %d" % (len(dict_1.keys())) )
-                        
-                        #Checks if nameFlipped is a bone in the armature
-                        if data.bones.get(nameFlipped) is not None:
-                        
-                        else:
-                            print("Bone Name \"%s\" isn\'t a bone." % (str(nameFlipped)) )
-                        
-                        """
-                        #These are where the differences in what dict_1 bone names are selected and appended to dict_direction for mirror calculation
-                        if self.type == "MIRROR_FROM_ACTIVE_BONE":
-                            #for loop to only include selected pose bones in armature, not all of them
-                            for i in dict_1:
-                                #If bone is selected, add it
-                                if data.bones[i].select == True:
-                                    #checks if the getDirection returned includes ".l", slice is since ".left" has ".l"
-                                    #if getDirection(i).find(bone_active_direction[0:2]) > -1:
-                                    if getDirection(i).find(bone_active_direction[0]) > -1:
-                                        #Adds this bone to the dictionary with its index
-                                        #dict_direction[i[0]] = i[1]
-                                        dict_direction.append(i)
-                        else:
-                            #for loop to only include selected pose bones in armature, but takes into account the direction selected in operator
-                            print("props.mirror_direction: %s" % (props.mirror_direction))
-                            mirror_direction = props.mirror_direction
-                            #slice will turn "LEFT" to "l" and lowercase it
-                            #to_find = mirror_direction[0:1].lower()
-                            to_find = mirror_direction[0].lower()
-                            print("to_find: %s" % (to_find))
-                            
-                            for i in dict_1:
-                                flip_name = flipNames(i)
-                                
-                                #print("getDir(\"%s\"): %s; Flip: %s" % (i, getDirection(i), getDirection(i, flip=True)) )
-                                #print("flip_name not in dict_direction: %s = %r" % (flip_name, flip_name not in dict_direction))
-                                #If bone is selected, or its mirror exists, and its mirror is selected
-                                if data.bones[i].select == True or (data.bones.get(flip_name) is not None and data.bones[flip_name].select == True):
-                                    #if getDirection(i).find(bone_active_direction[0:2]) > -1:
-                                    #if getDirection(i)[1:].find(to_find) > -1:
-                                    if getDirection(i).find(to_find) > -1:
-                                        #Checks if the flipped name is already there
-                                        boolean = i not in dict_direction
-                                        if boolean:
-                                            dict_direction.append(i)
-                                            
-                                        #print("%s = %r" % (i, boolean))
-                            
-                        #print("\ndict_direction.items(): %s" % (str(dict_direction.items())) )
-                        print("\ndict_direction.items(): %s" % (str(dict_direction)) )
-                        
-                        #For loop to mirror all drivers, and f-curves of selected bones's drivers in dict_direction
-                        for i in dict_direction:
-                            #print("i: %s" % (i))
-                            #nameFlipped = flipNames(i[0])
-                            nameFlipped = flipNames(i)
-                            #if the nameFlipped from dict_direction isn't in dict_1
-                            #if nameFlipped not in dict_1:
-                            
-                            #goes through properties now ex. ".rotation_euler"
-                            #for j in dict_1[i].items():
-                            
-                            #Checks if nameFlipped is a bone in the armature
-                            if data.bones.get(nameFlipped) is not None:
-                                for j in dict_1[i]:
-                                    print("j.items(%s): %s" % (j, dict_1[i].items()) )
-                                    print("j: %s" % (j) )
-                                    
-                                    for k in dict_1[i][j]:
-                                        print("k: %s" % (k) )
-                                        
-                                        index_driver = dict_1[i][j][k]
-                                        #print("index_driver Flipped: %r" % (dict_1[flipNames(i)][j][k] is not None) )
-                                        #print("index_driver Flipped: %r" % (dict_1.get(nameFlipped).get(j).get(k) is not None) )
-                                        print("index_driver Flipped: %r" % (nameFlipped in dict_1 and j in dict_1[nameFlipped] and k in dict_1[nameFlipped][j]) )
-                                        
-                                        driver_to_flip = anim_data.drivers[index_driver]
-                                        #driver_to_flip = anim_data.drivers[dict_1[i] ]
-                                        
-                                        data_path = driver_to_flip.data_path
-                                        
-                                        #splits data_path to get property string name to drive ex. ".rotation_euler"
-                                        rsplit = data_path.rsplit('.', 1)
-                                        
-                                        #name of the bone's property that is driver ex. ".rotation_euler"
-                                        prop = rsplit[1]
-                                        
-                                        print("data_path: %s; index: %d" % (data_path, index_driver) )
-                                        
-                                        #exists is if the flipped driver already existed
-                                        exists = False
-                                        
-                                        if nameFlipped not in dict_1:
-                                            #This adds the new driver
-                                            driver_new = bpy.context.object.pose.bones[nameFlipped].driver_add(j, k)
-                                            
-                                            if len(driver_new.modifiers) > 0:
-                                                #Removes the 1 modifier created when adding a new driver
-                                                driver_new.modifiers.remove(driver_new.modifiers[0])
-                                        else:
-                                            #if dict_1.get(nameFlipped).get(j).get(k) is not None:
-                                            if nameFlipped in dict_1 and j in dict_1[nameFlipped] and k in dict_1[nameFlipped][j]:
-                                                exists = True
-                                                index_driver_new = dict_1[flipNames(i) ][j][k]
-                                                driver_new = bpy.context.object.animation_data.drivers[index_driver_new]
-                                            else:
-                                                #This adds the new driver
-                                                driver_new = bpy.context.object.pose.bones[nameFlipped].driver_add(j, k)
-                                                
-                                                if len(driver_new.modifiers) > 0:
-                                                    #Removes the 1 modifier created when adding a new driver
-                                                    driver_new.modifiers.remove(driver_new.modifiers[0])
-                                        
-                                        print("New Driver: %s; Prop: %s; Index: %d" % (nameFlipped, j, k))
-                                        
-                                        #This changes the driver_new's properties
-                                        
-                                        #In "F-Curve" tab panel
-                                        driver_new.color_mode = driver_to_flip.color_mode
-                                        driver_new.auto_smoothing = driver_to_flip.auto_smoothing
-                                        
-                                        #Extrapolation is Important for the Driver Keyframe's endswith
-                                        driver_new.extrapolation = driver_to_flip.extrapolation
-                                        
-                                        #In "Drivers" tab panel
-                                        driver_new.driver.type = driver_to_flip.driver.type
-                                        driver_new.driver.expression = driver_to_flip.driver.expression
-                                        driver_new.driver.use_self = driver_to_flip.driver.use_self
-                                        
-                                        #This bottom section is for 
-                                        driver_new_vars = driver_new.driver.variables
-                                        #driver_vars is variables of driver_to_flip
-                                        driver_vars = driver_to_flip.driver.variables
-                                        print("variables: %d" % (len(driver_vars)))
-                                        
-                                        #print("" % ())
-                                        
-                                        #If there is at least 1 driver, and override_existing_drivers = True
-                                        if len(driver_vars) > 0 and props.override_existing_drivers:
-                                            #This will "Overide"/remove all previous variables in the existing mirrored driver, in order for correct new variables to be copied/duplicated
-                                            #exists is if the flipped driver already existed
-                                            if exists == True:
-                                                print("exists == True")
-                                                for m in enumerate(reversed(driver_new_vars)):
-                                                    print("Removed m[1] variable: %s" % (m[1].name))
-                                                    driver_new_vars.remove(m[1])
-                                                
-                                            #This mirrors the keyframes of the drivers
-                                            for m in enumerate(driver_to_flip.keyframe_points):
-                                                old_frame = m[1].co[0]
-                                                old_value = m[1].co[1]
-                                                keyf_name = driver_new.keyframe_points.insert(old_frame, old_value)
-                                                
-                                                keyf_name.interpolation = m[1].interpolation
-                                                
-                                                #Left/Right handles of keyframe
-                                                #handle_left
-                                                keyf_name.handle_left_type = m[1].handle_left_type
-                                                
-                                                keyf_name.handle_left[0] = m[1].handle_left[0]
-                                                keyf_name.handle_left[1] = m[1].handle_left[1]
-                                                
-                                                #handle_right
-                                                keyf_name.handle_right_type = m[1].handle_right_type
-                                                
-                                                keyf_name.handle_right[0] = m[1].handle_right[0]
-                                                keyf_name.handle_right[1] = m[1].handle_right[1]
-                                                    
-                                            #This mirrors the driver
-                                            for m in enumerate(driver_vars):
-                                                print("  Var[%d]: \"%s\"; Targets: %d" % (m[0], m[1].name, len(m[1].targets)))
-                                                
-                                                new_var = driver_new_vars.new()
-                                                
-                                                new_var.name = m[1].name
-                                                new_var.type = m[1].type
-                                                
-                                                if new_var.type == 'SINGLE_PROP':
-                                                    
-                                                    new_var.targets[0].id_type = m[1].targets[0].id_type
-                                                    new_var.targets[0].id = m[1].targets[0].id
-                                                    new_var.targets[0].transform_type = m[1].targets[0].transform_type
-                                                    new_var.targets[0].data_path = m[1].targets[0].data_path
-                                                    
-                                                #if new_var.type is 'TRANSFORMS, ROTATION_DIFF, or LOC_DIFF'
-                                                else:
-                                                    for p in enumerate(m[1].targets):
-                                                        #targets of driver_new's targets
-                                                        target_p = new_var.targets[p[0]]
-                                                        
-                                                        target_p.id = p[1].id
-                                                        
-                                                        #Checks if target.id has object & object is type "Armature"
-                                                        if target_p.id is not None and target_p.id.type == 'ARMATURE':
-                                                            #This one checks if nameFlipped2 of bone exists to flip it
-                                                            if p[1].bone_target != "":
-                                                                nameFlipped2 = flipNames(p[1].bone_target)
-                                                                
-                                                                #Flips bone name if mirror it exist
-                                                                if data.bones.get(nameFlipped2 ) is not None:
-                                                                    target_p.bone_target = nameFlipped2
-                                                                #Uses unflipped bone name if flipped isn't found
-                                                                else:
-                                                                    target_p.bone_target = p[1].bone_target
-                                                                    print("  \"%s\" isn\'t a bone" % (p[1].bone_target) )
-                                                                    
-                                                        #if new_var.type == 'TRANSFORMS':
-                                                        target_p.transform_type = p[1].transform_type
-                                                        target_p.rotation_mode = p[1].rotation_mode
-                                                        target_p.transform_space = p[1].transform_space
-                                                        
-                                                        #elif new_var.type == 'LOC_DIFF':
-                                                        #    target_p.transform_space = p[1].transform_space
-                                                        
-                                                        print("  %d: transform_type: %s" % (p[0], p[1].transform_type))
-                                                        
-                                        else:
-                                            print("No Variables")
-                            else:
-                                print("\"%s\" isn\'t a bone" % (nameFlipped))
-                                
-                        #print("\ndict_direction.items(): %s" % (str(dict_direction.items())) )
-                        print("\ndict_direction.items(): %s" % (str(dict_direction)) )
-                        
-                        reportString = "Done!"
-                            
-                        print(reportString + "\n")
-                        self.report({'INFO'}, reportString)
-                        
-                    
-                    else:
-                        reportString = "Object[%s] has No Drivers" % (bpy.context.object.name)
-                else:
-                    reportString = "Active Bone Name [%s] can\'t be flipped" % (bone_active.name)
-            else:
-                reportString = "No Active Bone found"
-                
-            print(reportString)
-            self.report({'INFO'}, reportString)
-                
         elif self.type == "MIRROR_DRIVER_TEST_PRINT":
             
             anim_data = bpy.context.object.animation_data
@@ -861,6 +530,359 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
                 self.report({'INFO'}, reportString)
                 
                 
+        #Resets default settings
+        self.type == "DEFAULT"
+        
+        return {'FINISHED'}
+        
+class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
+    bl_idname = "rig_debugger.driver_mirror"
+    bl_label = "Iterate Objects Debugging Operators"
+    bl_description = "To assist with debugging and development"
+    bl_options = {'UNDO',}
+    type: bpy.props.StringProperty(default="DEFAULT")
+    #index: bpy.props.IntProperty(default=0, min=0)
+    
+    def execute(self, context):
+        scene = bpy.context.scene
+        context = bpy.context
+        data = context.object.data
+        props = scene.RD_Props
+        
+        #Resets default settings
+        def resetSelf():
+            self.type == "DEFAULT"
+            #self.sub == "DEFAULT"
+        
+        anim_data = bpy.context.object.animation_data
+        
+        if self.type == "MIRROR_FROM_ACTIVE_BONE" or self.type == "MIRROR_FROM_DIRECTION":
+            
+            bone_active = bpy.context.active_pose_bone
+            bones_selected = bpy.context.selected_pose_bones_from_active_object
+            """
+            if direction[0] != "Y":
+                print("BRUH MOMENTA "*4)
+                return {'FINISHED'}
+                print("BRUH MOMENTA "*4)
+            """
+            
+            #If there is an active pose bone
+            if bone_active != None:
+                bone_active_direction = getDirection(bone_active.name)
+                print("bone_active_direction: %s" % (bone_active_direction))
+                
+                #Checks if active bone's name can be flipped
+                if bone_active_direction == "":
+                    reportString = "Active Bone Name [%s] can\'t be flipped" % (bone_active.name)
+                    
+                    print(reportString + "\n")
+                    self.report({'INFO'}, reportString)
+                    return {'FINISHED'}
+                    
+            else:
+                reportString = "No Active Bone found"
+                print(reportString + "\n")
+                self.report({'INFO'}, reportString)
+                return {'FINISHED'}
+                
+        #If there is at least one driver in object
+        if anim_data.drivers != None:
+            list_nothing = []
+            list_side = []
+            
+            #bone name dictionary from drivers[].datapath
+            dict_1 = {}
+            
+            #instead of a copy of a dictionary, just have a list of strings of the names of the dictionary
+            dict_direction = []
+            
+            #gets all the drivers with .L or .R
+            for i in enumerate(anim_data.drivers):
+                data_path = i[1].data_path
+                
+                array_index = i[1].array_index
+                
+                #Checks if driver is from a "pose.bone"
+                if data_path.startswith('pose.bones') == True:
+                    
+                    split = data_path.split('"', 2)
+                    nameNormal = split[1]
+                    
+                    nameFlipped = flipNames(nameNormal)
+                    print("nameNormal: %s; nameFlipped: %s;" % (str(nameNormal), str(nameFlipped)) )
+                    #splits data_path to get property string name to drive ex. ".rotation_euler"
+                    rsplit = data_path.rsplit('.', 1)
+                    
+                    #name of the bone's property that is driver ex. ".rotation_euler"
+                    prop = rsplit[1]
+                    
+                    #if flippedNames() actually returns a flipped name, else it can't be flipped
+                    if nameFlipped != "":
+                        #name of bone and index of the bone's driver
+                        if nameNormal not in dict_1:
+                            dict_1[nameNormal] = {}
+                            
+                        if prop not in dict_1[nameNormal]:
+                            dict_1[nameNormal][prop] = {}
+                            
+                        dict_1[nameNormal][prop][array_index] = i[0]
+                        
+                    else:
+                        pass
+                else:
+                    print("Passed: %s" % (str(i)) )
+                    
+            """
+            print("\nitems(): %s" % (str(dict_1.items())) )
+            
+            print("\nkeys(): %s" % (str(dict_1.keys())) )
+            
+            print("\nlen() of dict_1: %d" % (len(dict_1)) )
+            
+            print("\nlen() of dict_1.keys(): %d" % (len(dict_1.keys())) )
+            
+            #Checks if nameFlipped is a bone in the armature
+            if data.bones.get(nameFlipped) is not None:
+            
+            else:
+                print("Bone Name \"%s\" isn\'t a bone." % (str(nameFlipped)) )
+            
+            """
+            #These are where the differences in what dict_1 bone names are selected and appended to dict_direction for mirror calculation
+            if self.type == "MIRROR_FROM_ACTIVE_BONE":
+                #for loop to only include selected pose bones in armature, not all of them
+                for i in dict_1:
+                    #If bone is selected, add it
+                    if data.bones[i].select == True:
+                        #checks if the getDirection returned includes ".l", slice is since ".left" has ".l"
+                        #if getDirection(i).find(bone_active_direction[0:2]) > -1:
+                        if getDirection(i).find(bone_active_direction[0]) > -1:
+                            #Adds this bone to the dictionary with its index
+                            #dict_direction[i[0]] = i[1]
+                            dict_direction.append(i)
+            else:
+                #for loop to only include selected pose bones in armature, but takes into account the direction selected in operator
+                print("props.mirror_direction: %s" % (props.mirror_direction))
+                mirror_direction = props.mirror_direction
+                #slice will turn "LEFT" to "l" and lowercase it
+                #to_find = mirror_direction[0:1].lower()
+                to_find = mirror_direction[0].lower()
+                print("to_find: %s" % (to_find))
+                
+                for i in dict_1:
+                    flip_name = flipNames(i)
+                    
+                    #print("getDir(\"%s\"): %s; Flip: %s" % (i, getDirection(i), getDirection(i, flip=True)) )
+                    #print("flip_name not in dict_direction: %s = %r" % (flip_name, flip_name not in dict_direction))
+                    #If bone is selected, or its mirror exists, and its mirror is selected
+                    if data.bones[i].select == True or (data.bones.get(flip_name) is not None and data.bones[flip_name].select == True):
+                        #if getDirection(i).find(bone_active_direction[0:2]) > -1:
+                        #if getDirection(i)[1:].find(to_find) > -1:
+                        if getDirection(i).find(to_find) > -1:
+                            #Checks if the flipped name is already there
+                            boolean = i not in dict_direction
+                            if boolean:
+                                dict_direction.append(i)
+                                
+                            #print("%s = %r" % (i, boolean))
+                
+            #print("\ndict_direction.items(): %s" % (str(dict_direction.items())) )
+            print("\ndict_direction.items(): %s" % (str(dict_direction)) )
+            
+            #For loop to mirror all drivers, and f-curves of selected bones's drivers in dict_direction
+            for i in dict_direction:
+                #print("i: %s" % (i))
+                #nameFlipped = flipNames(i[0])
+                nameFlipped = flipNames(i)
+                #if the nameFlipped from dict_direction isn't in dict_1
+                #if nameFlipped not in dict_1:
+                
+                #goes through properties now ex. ".rotation_euler"
+                #for j in dict_1[i].items():
+                
+                #Checks if nameFlipped is a bone in the armature
+                if data.bones.get(nameFlipped) is not None:
+                    for j in dict_1[i]:
+                        print("j.items(%s): %s" % (j, dict_1[i].items()) )
+                        print("j: %s" % (j) )
+                        
+                        for k in dict_1[i][j]:
+                            print("k: %s" % (k) )
+                            
+                            index_driver = dict_1[i][j][k]
+                            #print("index_driver Flipped: %r" % (dict_1[flipNames(i)][j][k] is not None) )
+                            #print("index_driver Flipped: %r" % (dict_1.get(nameFlipped).get(j).get(k) is not None) )
+                            print("index_driver Flipped: %r" % (nameFlipped in dict_1 and j in dict_1[nameFlipped] and k in dict_1[nameFlipped][j]) )
+                            
+                            driver_to_flip = anim_data.drivers[index_driver]
+                            #driver_to_flip = anim_data.drivers[dict_1[i] ]
+                            
+                            data_path = driver_to_flip.data_path
+                            
+                            #splits data_path to get property string name to drive ex. ".rotation_euler"
+                            rsplit = data_path.rsplit('.', 1)
+                            
+                            #name of the bone's property that is driver ex. ".rotation_euler"
+                            prop = rsplit[1]
+                            
+                            print("data_path: %s; index: %d" % (data_path, index_driver) )
+                            
+                            #exists is if the flipped driver already existed
+                            exists = False
+                            
+                            if nameFlipped not in dict_1:
+                                #This adds the new driver
+                                driver_new = bpy.context.object.pose.bones[nameFlipped].driver_add(j, k)
+                                
+                                if len(driver_new.modifiers) > 0:
+                                    #Removes the 1 modifier created when adding a new driver
+                                    driver_new.modifiers.remove(driver_new.modifiers[0])
+                            else:
+                                #if dict_1.get(nameFlipped).get(j).get(k) is not None:
+                                if nameFlipped in dict_1 and j in dict_1[nameFlipped] and k in dict_1[nameFlipped][j]:
+                                    exists = True
+                                    index_driver_new = dict_1[flipNames(i) ][j][k]
+                                    driver_new = bpy.context.object.animation_data.drivers[index_driver_new]
+                                else:
+                                    #This adds the new driver
+                                    driver_new = bpy.context.object.pose.bones[nameFlipped].driver_add(j, k)
+                                    
+                                    if len(driver_new.modifiers) > 0:
+                                        #Removes the 1 modifier created when adding a new driver
+                                        driver_new.modifiers.remove(driver_new.modifiers[0])
+                            
+                            print("New Driver: %s; Prop: %s; Index: %d" % (nameFlipped, j, k))
+                            
+                            #This changes the driver_new's properties
+                            
+                            #In "F-Curve" tab panel
+                            driver_new.color_mode = driver_to_flip.color_mode
+                            driver_new.auto_smoothing = driver_to_flip.auto_smoothing
+                            
+                            #Extrapolation is Important for the Driver Keyframe's endswith
+                            driver_new.extrapolation = driver_to_flip.extrapolation
+                            
+                            #In "Drivers" tab panel
+                            driver_new.driver.type = driver_to_flip.driver.type
+                            driver_new.driver.expression = driver_to_flip.driver.expression
+                            driver_new.driver.use_self = driver_to_flip.driver.use_self
+                            
+                            #This bottom section is for 
+                            driver_new_vars = driver_new.driver.variables
+                            #driver_vars is variables of driver_to_flip
+                            driver_vars = driver_to_flip.driver.variables
+                            print("variables: %d" % (len(driver_vars)))
+                            
+                            #print("" % ())
+                            
+                            #If there is at least 1 driver, and override_existing_drivers = True
+                            if len(driver_vars) > 0 and props.override_existing_drivers:
+                                #This will "Overide"/remove all previous variables in the existing mirrored driver, in order for correct new variables to be copied/duplicated
+                                #exists is if the flipped driver already existed
+                                if exists == True:
+                                    print("exists == True")
+                                    for m in enumerate(reversed(driver_new_vars)):
+                                        print("Removed m[1] variable: %s" % (m[1].name))
+                                        driver_new_vars.remove(m[1])
+                                    
+                                #This mirrors the keyframes of the drivers
+                                for m in enumerate(driver_to_flip.keyframe_points):
+                                    old_frame = m[1].co[0]
+                                    old_value = m[1].co[1]
+                                    keyf_name = driver_new.keyframe_points.insert(old_frame, old_value)
+                                    
+                                    keyf_name.interpolation = m[1].interpolation
+                                    
+                                    #Left/Right handles of keyframe
+                                    #handle_left
+                                    keyf_name.handle_left_type = m[1].handle_left_type
+                                    
+                                    keyf_name.handle_left[0] = m[1].handle_left[0]
+                                    keyf_name.handle_left[1] = m[1].handle_left[1]
+                                    
+                                    #handle_right
+                                    keyf_name.handle_right_type = m[1].handle_right_type
+                                    
+                                    keyf_name.handle_right[0] = m[1].handle_right[0]
+                                    keyf_name.handle_right[1] = m[1].handle_right[1]
+                                        
+                                #This mirrors the driver
+                                for m in enumerate(driver_vars):
+                                    print("  Var[%d]: \"%s\"; Targets: %d" % (m[0], m[1].name, len(m[1].targets)))
+                                    
+                                    new_var = driver_new_vars.new()
+                                    
+                                    new_var.name = m[1].name
+                                    new_var.type = m[1].type
+                                    
+                                    if new_var.type == 'SINGLE_PROP':
+                                        
+                                        new_var.targets[0].id_type = m[1].targets[0].id_type
+                                        new_var.targets[0].id = m[1].targets[0].id
+                                        new_var.targets[0].transform_type = m[1].targets[0].transform_type
+                                        new_var.targets[0].data_path = m[1].targets[0].data_path
+                                        
+                                    #if new_var.type is 'TRANSFORMS, ROTATION_DIFF, or LOC_DIFF'
+                                    else:
+                                        for p in enumerate(m[1].targets):
+                                            #targets of driver_new's targets
+                                            target_p = new_var.targets[p[0]]
+                                            
+                                            target_p.id = p[1].id
+                                            
+                                            #Checks if target.id has object & object is type "Armature"
+                                            if target_p.id is not None and target_p.id.type == 'ARMATURE':
+                                                #This one checks if nameFlipped2 of bone exists to flip it
+                                                if p[1].bone_target != "":
+                                                    nameFlipped2 = flipNames(p[1].bone_target)
+                                                    
+                                                    #Flips bone name if mirror it exist
+                                                    if data.bones.get(nameFlipped2 ) is not None:
+                                                        target_p.bone_target = nameFlipped2
+                                                    #Uses unflipped bone name if flipped isn't found
+                                                    else:
+                                                        target_p.bone_target = p[1].bone_target
+                                                        print("  \"%s\" isn\'t a bone" % (p[1].bone_target) )
+                                                        
+                                            #if new_var.type == 'TRANSFORMS':
+                                            target_p.transform_type = p[1].transform_type
+                                            target_p.rotation_mode = p[1].rotation_mode
+                                            target_p.transform_space = p[1].transform_space
+                                            
+                                            #elif new_var.type == 'LOC_DIFF':
+                                            #    target_p.transform_space = p[1].transform_space
+                                            
+                                            print("  %d: transform_type: %s" % (p[0], p[1].transform_type))
+                                            
+                            else:
+                                print("No Variables")
+                else:
+                    print("\"%s\" isn\'t a bone" % (nameFlipped))
+                    
+            #print("\ndict_direction.items(): %s" % (str(dict_direction.items())) )
+            print("\ndict_direction.items(): %s" % (str(dict_direction)) )
+            
+            reportString = "Done!"
+                
+            #print(reportString + "\n")
+            #self.report({'INFO'}, reportString)
+            
+        
+        else:
+            reportString = "Object[%s] has No Drivers" % (bpy.context.object.name)
+            """
+            else:
+                reportString = "Active Bone Name [%s] can\'t be flipped" % (bone_active.name)
+            """
+            """
+            else:
+                reportString = "No Active Bone found"
+            """
+            
+        print(reportString + "\n")
+        self.report({'INFO'}, reportString)
+        
         #Resets default settings
         self.type == "DEFAULT"
         
@@ -1950,7 +1972,7 @@ class RIG_DEBUGGER_PT_CustomPanel2(bpy.types.Panel):
         
         
         row = col.row(align=True)
-        row.operator("rig_debugger.driver_mirror", icon="INFO", text="Mirror Driver Test Print").type = "MIRROR_DRIVER_TEST_PRINT"
+        row.operator("rig_debugger.debug", icon="INFO", text="Mirror Driver Test Print").type = "MIRROR_DRIVER_TEST_PRINT"
         
         """
         if ob.pose != None:
