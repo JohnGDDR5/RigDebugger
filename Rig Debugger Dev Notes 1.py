@@ -4,6 +4,8 @@
 
 #Version 1.0000, 8/4/2019
 
+
+
 #To do
 1. use .startswith() and .split()
 if d.data_path.startswith('pose.bones'):
