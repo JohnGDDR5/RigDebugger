@@ -22,6 +22,8 @@ if d.data_path.startswith('pose.bones'):
 for i in enumerate(bpy.data.objects['Armature.1'].animation_data.drivers):
     print("%d: Index %d" % (i[0], i[1].array_index))
 
+bpy.context.object.animation_data.drivers[0].select
+
 bpy.context.object.pose.bones["Hoof.Front.Roll.Back.L"].rotation_euler[2]
 #Adds a driver
 bpy.context.object.pose.bones["Hoof.Front.Roll.Back.L"].driver_add('rotation_euler', 2)
