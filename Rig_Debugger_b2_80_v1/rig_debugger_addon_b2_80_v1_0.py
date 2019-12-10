@@ -541,6 +541,7 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
     bl_description = "To assist with debugging and development"
     bl_options = {'UNDO',}
     type: bpy.props.StringProperty(default="DEFAULT")
+    sub: bpy.props.StringProperty(default="DEFAULT")
     #index: bpy.props.IntProperty(default=0, min=0)
     
     def execute(self, context):
@@ -552,50 +553,66 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
         #Resets default settings
         def resetSelf():
             self.type == "DEFAULT"
+            self.sub == "DEFAULT"
             #self.sub == "DEFAULT"
         
         anim_data = bpy.context.object.animation_data
+        """
+        self.type == "ARMATURE":
+            self.sub == "ACTIVE_BONE_ALL", "FROM_DIRECTION_ALL"
+        self.type == "DRIVER_EDITOR":
+            self.sub == "ACTIVE_DRIVERS", "ACTIVE_FROM_DIRECTION"
+        """
         
-        if self.type == "MIRROR_FROM_ACTIVE_BONE" or self.type == "MIRROR_FROM_DIRECTION":
-            
-            bone_active = bpy.context.active_pose_bone
-            bones_selected = bpy.context.selected_pose_bones_from_active_object
-            """
-            if direction[0] != "Y":
-                print("BRUH MOMENTA "*4)
-                return {'FINISHED'}
-                print("BRUH MOMENTA "*4)
-            """
-            
-            #If there is an active pose bone
-            if bone_active != None:
-                bone_active_direction = getDirection(bone_active.name)
-                print("bone_active_direction: %s" % (bone_active_direction))
+        #if self.type == "MIRROR_FROM_ACTIVE_BONE" or self.type == "MIRROR_FROM_DIRECTION":
+        if self.type == "ARMATURE":
+            if self.sub == "ACTIVE_BONE_ALL" or self.type == "FROM_DIRECTION_ALL":
                 
-                #Checks if active bone's name can be flipped
-                if bone_active_direction == "":
-                    reportString = "Active Bone Name [%s] can\'t be flipped" % (bone_active.name)
+                bone_active = bpy.context.active_pose_bone
+                bones_selected = bpy.context.selected_pose_bones_from_active_object
+                
+                #If there is an active pose bone
+                if bone_active != None:
+                    bone_active_direction = getDirection(bone_active.name)
+                    print("bone_active_direction: %s" % (bone_active_direction))
                     
+                    #Checks if active bone's name can be flipped
+                    if bone_active_direction == "":
+                        reportString = "Active Bone Name [%s] can\'t be flipped" % (bone_active.name)
+                        
+                        print(reportString + "\n")
+                        self.report({'INFO'}, reportString)
+                        return {'FINISHED'}
+                        
+                else:
+                    reportString = "No Active Bone found"
                     print(reportString + "\n")
                     self.report({'INFO'}, reportString)
                     return {'FINISHED'}
-                    
             else:
-                reportString = "No Active Bone found"
+                reportString = "self.sub type Unrecognized"
                 print(reportString + "\n")
                 self.report({'INFO'}, reportString)
                 return {'FINISHED'}
+        #elif self.type == "MIRROR_FROM_ACTIVE_DRIVERS" or self.type == "MIRROR_FROM_DIRECTION_DRIVERS":
+        elif self.type == "DRIVER_EDITOR":
+            if self.sub == "ACTIVE_DRIVERS" or self.sub == "ACTIVE_FROM_DIRECTION":
+                pass
+            pass
+            
+        else:
+            reportString = "No recognized .type Mode"
+            print(reportString + "\n")
+            self.report({'INFO'}, reportString)
+            return {'FINISHED'}
                 
         #If there is at least one driver in object
         if anim_data.drivers != None:
-            list_nothing = []
-            list_side = []
-            
             #bone name dictionary from drivers[].datapath
             dict_1 = {}
             
-            #instead of a copy of a dictionary, just have a list of strings of the names of the dictionary
-            dict_direction = []
+            #dict_direction = []
+            dict_direction = {}
             
             #gets all the drivers with .L or .R
             for i in enumerate(anim_data.drivers):
@@ -628,95 +645,132 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
                             
                         dict_1[nameNormal][prop][array_index] = i[0]
                         
+                        #if self.type == "MIRROR_FROM_ACTIVE_DRIVERS":
+                        if self.type == "DRIVER_EDITOR" and self.sub == "ACTIVE_DRIVERS":
+                            #If the driver is selected, add this driver to dict_direction
+                            if i[1].select == True:
+                                #Section to add Driver location to dict_direction
+                                if nameNormal not in dict_direction:
+                                    dict_direction[nameNormal] = {}
+                                    
+                                if prop not in dict_direction[nameNormal]:
+                                    dict_direction[nameNormal][prop] = {}
+                                    
+                                dict_direction[nameNormal][prop][array_index] = i[0]
+                        
                     else:
                         pass
                 else:
                     print("Passed: %s" % (str(i)) )
                     
-            """
-            print("\nitems(): %s" % (str(dict_1.items())) )
-            
-            print("\nkeys(): %s" % (str(dict_1.keys())) )
-            
-            print("\nlen() of dict_1: %d" % (len(dict_1)) )
-            
-            print("\nlen() of dict_1.keys(): %d" % (len(dict_1.keys())) )
-            
-            #Checks if nameFlipped is a bone in the armature
-            if data.bones.get(nameFlipped) is not None:
-            
-            else:
-                print("Bone Name \"%s\" isn\'t a bone." % (str(nameFlipped)) )
-            
-            """
             #These are where the differences in what dict_1 bone names are selected and appended to dict_direction for mirror calculation
-            if self.type == "MIRROR_FROM_ACTIVE_BONE":
-                #for loop to only include selected pose bones in armature, not all of them
-                for i in dict_1:
-                    #If bone is selected, add it
-                    if data.bones[i].select == True:
-                        #checks if the getDirection returned includes ".l", slice is since ".left" has ".l"
-                        #if getDirection(i).find(bone_active_direction[0:2]) > -1:
-                        if getDirection(i).find(bone_active_direction[0]) > -1:
-                            #Adds this bone to the dictionary with its index
-                            #dict_direction[i[0]] = i[1]
-                            dict_direction.append(i)
-            else:
-                #for loop to only include selected pose bones in armature, but takes into account the direction selected in operator
-                print("props.mirror_direction: %s" % (props.mirror_direction))
-                mirror_direction = props.mirror_direction
-                #slice will turn "LEFT" to "l" and lowercase it
-                #to_find = mirror_direction[0:1].lower()
-                to_find = mirror_direction[0].lower()
-                print("to_find: %s" % (to_find))
-                
-                for i in dict_1:
-                    flip_name = flipNames(i)
-                    
-                    #print("getDir(\"%s\"): %s; Flip: %s" % (i, getDirection(i), getDirection(i, flip=True)) )
-                    #print("flip_name not in dict_direction: %s = %r" % (flip_name, flip_name not in dict_direction))
-                    #If bone is selected, or its mirror exists, and its mirror is selected
-                    if data.bones[i].select == True or (data.bones.get(flip_name) is not None and data.bones[flip_name].select == True):
-                        #if getDirection(i).find(bone_active_direction[0:2]) > -1:
-                        #if getDirection(i)[1:].find(to_find) > -1:
-                        if getDirection(i).find(to_find) > -1:
-                            #Checks if the flipped name is already there
-                            boolean = i not in dict_direction
-                            if boolean:
-                                dict_direction.append(i)
+            #if self.type == "MIRROR_FROM_ACTIVE_BONE":
+            if self.type == "ARMATURE":
+                if self.sub == "ACTIVE_BONE_ALL":
+                    #for loop to only include selected pose bones in armature, not all of them
+                    for i in dict_1:
+                        #If bone is selected, add it
+                        if data.bones[i].select == True:
+                            #checks if the getDirection returned includes ".l", slice is since ".left" has ".l"
+                            #if getDirection(i).find(bone_active_direction[0:2]) > -1:
+                            if getDirection(i).find(bone_active_direction[0]) > -1:
+                                #Adds this bone to the dictionary with its index
+                                #dict_direction[i[0]] = i[1]
+                                #dict_direction.append(i)
+                                dict_direction[i] = {}
                                 
-                            #print("%s = %r" % (i, boolean))
+                #elif self.type == "MIRROR_FROM_DIRECTION":
+                elif self.sub == "FROM_DIRECTION_ALL":
+                    #for loop to only include selected pose bones in armature, but takes into account the direction selected in operator
+                    print("props.mirror_direction: %s" % (props.mirror_direction))
+                    mirror_direction = props.mirror_direction
+                    #slice will turn "LEFT" to "l" and lowercase it
+                    #to_find = mirror_direction[0:1].lower()
+                    to_find = mirror_direction[0].lower()
+                    print("to_find: %s" % (to_find))
+                    
+                    for i in dict_1:
+                        flip_name = flipNames(i)
+                        
+                        #If bone is selected, or its mirror exists, and its mirror is selected
+                        if data.bones[i].select == True or (data.bones.get(flip_name) is not None and data.bones[flip_name].select == True):
+                            if getDirection(i).find(to_find) > -1:
+                                #Checks if the flipped name is already there
+                                boolean = i not in dict_direction
+                                if boolean:
+                                    #dict_direction[bone_name]
+                                    dict_direction[i] = {}
+                                
+            #elif self.type == "MIRROR_FROM_DIRECTION_DRIVERS":
+            elif self.type == "DRIVER_EDITOR":
+                #This one requires for dict_1 to be built entirely, in order to find if flipNames() exists
+                if self.sub == "ACTIVE_FROM_DIRECTION":
+                    #Only mirros drivers that are selected, and takes the props.mirror_direction for what driver to use to mirror
+                    print("props.mirror_direction: %s" % (props.mirror_direction))
+                    mirror_direction = props.mirror_direction
+                    #slice will turn "LEFT" to "l" and lowercase it
+                    #to_find = mirror_direction[0:1].lower()
+                    to_find = mirror_direction[0].lower()
+                    #print("to_find: %s" % (to_find))
+                    
+                    for i in dict_1:
+                        nameFlipped = flipNames(i)
+                        
+                        for j in dict_1[i]:
+                            for k in dict_1[i][j]:
+                                index_driver = dict_1[i][j][k]
+                                driver_to = anim_data.drivers[index_driver]
+                                flipped_exists = nameFlipped in dict_1 and j in dict_1[nameFlipped] and k in dict_1[nameFlipped][j]
+                                #If driver is selected, or its flipName exists and its flipName is selected
+                                if driver_to.select == True or (flipped_exists == True and anim_data.drivers[dict_1[nameFlipped][j][k] ].select == True):
+                                    #If selected is 
+                                    if getDirection(i).find(to_find) > -1:
+                                        #Checks if the flipped name is already there
+                                        if i not in dict_direction:
+                                            #dict_direction[bone_name]
+                                            dict_direction[i] = {}
+                                            
+                                        if j not in dict_direction[i]:
+                                            #dict_direction[bone_name]
+                                            dict_direction[i][j] = {}
+                                            
+                                        dict_direction[i][j][k] = dict_1[i][j][k]
+                                
+            else:
+                pass
                 
             #print("\ndict_direction.items(): %s" % (str(dict_direction.items())) )
             print("\ndict_direction.items(): %s" % (str(dict_direction)) )
             
+            #if self.type != "MIRROR_FROM_ACTIVE_DRIVERS" or self.type != "MIRROR_FROM_DIRECTION_DRIVERS":
+            if self.type != "DRIVER_EDITOR":
+                if self.sub != "ACTIVE_DRIVERS" or self.sub != "ACTIVE_FROM_DIRECTION":
+                    dictionary = dict_1
+            else:
+                dictionary = dict_direction
+            
             #For loop to mirror all drivers, and f-curves of selected bones's drivers in dict_direction
+            #If nameFlipped driver exists, it uses that ones, and adds a new one if it doesn't exists
             for i in dict_direction:
-                #print("i: %s" % (i))
-                #nameFlipped = flipNames(i[0])
-                nameFlipped = flipNames(i)
-                #if the nameFlipped from dict_direction isn't in dict_1
-                #if nameFlipped not in dict_1:
-                
                 #goes through properties now ex. ".rotation_euler"
-                #for j in dict_1[i].items():
+                
+                nameFlipped = flipNames(i)
                 
                 #Checks if nameFlipped is a bone in the armature
                 if data.bones.get(nameFlipped) is not None:
-                    for j in dict_1[i]:
-                        print("j.items(%s): %s" % (j, dict_1[i].items()) )
+                
+                    for j in dictionary[i]:
+                        print("j.items(%s): %s" % (j, dictionary[i].items()) )
                         print("j: %s" % (j) )
                         
-                        for k in dict_1[i][j]:
+                        for k in dictionary[i][j]:
                             print("k: %s" % (k) )
                             
                             index_driver = dict_1[i][j][k]
-                            #print("index_driver Flipped: %r" % (dict_1[flipNames(i)][j][k] is not None) )
-                            #print("index_driver Flipped: %r" % (dict_1.get(nameFlipped).get(j).get(k) is not None) )
+                            
                             print("index_driver Flipped: %r" % (nameFlipped in dict_1 and j in dict_1[nameFlipped] and k in dict_1[nameFlipped][j]) )
                             
                             driver_to_flip = anim_data.drivers[index_driver]
-                            #driver_to_flip = anim_data.drivers[dict_1[i] ]
                             
                             data_path = driver_to_flip.data_path
                             
@@ -731,6 +785,7 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
                             #exists is if the flipped driver already existed
                             exists = False
                             
+                            #If flipped driver doesn't exists, create one, else use existing
                             if nameFlipped not in dict_1:
                                 #This adds the new driver
                                 driver_new = bpy.context.object.pose.bones[nameFlipped].driver_add(j, k)
@@ -739,10 +794,11 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
                                     #Removes the 1 modifier created when adding a new driver
                                     driver_new.modifiers.remove(driver_new.modifiers[0])
                             else:
-                                #if dict_1.get(nameFlipped).get(j).get(k) is not None:
+                                #if dict_1[nameFlipped][j][k] exists:
                                 if nameFlipped in dict_1 and j in dict_1[nameFlipped] and k in dict_1[nameFlipped][j]:
                                     exists = True
-                                    index_driver_new = dict_1[flipNames(i) ][j][k]
+                                    #index_driver_new = dict_1[flipNames(i) ][j][k]
+                                    index_driver_new = dict_1[nameFlipped][j][k]
                                     driver_new = bpy.context.object.animation_data.drivers[index_driver_new]
                                 else:
                                     #This adds the new driver
@@ -946,61 +1002,47 @@ class RIG_DEBUGGER_OT_DriverOps(bpy.types.Operator):
                             #"INDEX" Takes into account if Bone name is flipable
                             if self.sub == "INDEX":
                                 #if flippedNames() actually returns a flipped name, else it can't be flipped
-                                if nameFlipped != "":
-                                    #Section to add Driver location to dict_1
-                                    #name of bone and index of the bone's driver
-                                    if nameNormal not in dict_1:
-                                        dict_1[nameNormal] = {}
-                                        
-                                    if prop not in dict_1[nameNormal]:
-                                        dict_1[nameNormal][prop] = {}
-                                        
-                                    dict_1[nameNormal][prop][array_index] = i[0]
-                                    
-                                    #If the driver is selected, add this driver to dict_direction
-                                    if i[1].select == True:
-                                        if self.sub == "INDEX":
-                                            #Section to add Driver location to dict_direction
-                                            if nameNormal not in dict_direction:
-                                                dict_direction[nameNormal] = {}
-                                                
-                                            if prop not in dict_direction[nameNormal]:
-                                                dict_direction[nameNormal][prop] = {}
-                                                
-                                            dict_direction[nameNormal][prop][array_index] = i[0]
-                                            dict_direction[nameNormal][prop][array_index] = i[0]
-                                                
-                            #Includes any bone regardless if its flipable or not
-                            #elif self.sub == "PROP_BONE" or self.sub == "PROP_ALL":
-                            else:
-                                #Dictionary Schema: dict_1[nameNormal][prop][array_index]
-                                if nameNormal not in dict_1:
-                                    dict_1[nameNormal] = {}
-                                    
-                                if prop not in dict_1[nameNormal]:
-                                    dict_1[nameNormal][prop] = {}
-                                    
-                                dict_1[nameNormal][prop][array_index] = i[0]
+                                if nameFlipped == "":
+                                    continue
                                 
-                                #If the driver is selected, add this driver to dict_direction
-                                if i[1].select == True:
-                                    if self.sub == "PROP_BONE":
-                                        #Dictionary Schema: dict_direction[nameNormal][prop]
-                                        if nameNormal not in dict_direction:
-                                            dict_direction[nameNormal] = {}
-                                            
-                                        if prop not in dict_direction[nameNormal]:
-                                            dict_direction[nameNormal][prop] = {}
-                                            
-                                    elif self.sub == "PROP_BONE_ALL":
-                                        #Dictionary Schema: dict_direction[nameNormal]
-                                        if nameNormal not in dict_direction:
-                                            dict_direction[nameNormal] = {}
+                            #Dictionary Schema: dict_1[nameNormal][prop][array_index]
+                            if nameNormal not in dict_1:
+                                dict_1[nameNormal] = {}
+                                
+                            if prop not in dict_1[nameNormal]:
+                                dict_1[nameNormal][prop] = {}
+                                
+                            dict_1[nameNormal][prop][array_index] = i[0]
+                            
+                            #If the driver is selected, add this driver to dict_direction
+                            if i[1].select == True:
+                                if self.sub == "INDEX":
+                                    #Section to add Driver location to dict_direction
+                                    if nameNormal not in dict_direction:
+                                        dict_direction[nameNormal] = {}
+                                        
+                                    if prop not in dict_direction[nameNormal]:
+                                        dict_direction[nameNormal][prop] = {}
+                                        
+                                    dict_direction[nameNormal][prop][array_index] = i[0]
                                     
-                                    elif self.sub == "PROP_ALL":
-                                        #Dictionary Schema: dict_direction[prop]
-                                        if prop not in dict_direction:
-                                            dict_direction[prop] = {}
+                                elif self.sub == "PROP_BONE":
+                                    #Dictionary Schema: dict_direction[nameNormal][prop]
+                                    if nameNormal not in dict_direction:
+                                        dict_direction[nameNormal] = {}
+                                        
+                                    if prop not in dict_direction[nameNormal]:
+                                        dict_direction[nameNormal][prop] = {}
+                                        
+                                elif self.sub == "PROP_BONE_ALL":
+                                    #Dictionary Schema: dict_direction[nameNormal]
+                                    if nameNormal not in dict_direction:
+                                        dict_direction[nameNormal] = {}
+                                
+                                elif self.sub == "PROP_ALL":
+                                    #Dictionary Schema: dict_direction[prop]
+                                    if prop not in dict_direction:
+                                        dict_direction[prop] = {}
                                 
                                 
                             #else:
@@ -1010,67 +1052,74 @@ class RIG_DEBUGGER_OT_DriverOps(bpy.types.Operator):
                             
                     print("dict_1: %s" % (str(dict_1)))
                     print("dict_direction: %s" % (str(dict_direction)))
-                            
+                    
+                    #Integer to display in UI how many drivers were affected
+                    drivers_effected = 0
+                    
+                    #Selects the mirrored driver
                     if self.sub == "INDEX":
                         for i in dict_direction:
                             flip_name = flipNames(i)
                             
                             for j in dict_direction[i]:
-                                
                                 for k in dict_direction[i][j]:
-                                    #driver_to_flip = anim_data.drivers[index_driver]
-                                    
-                                    #Affects the opposites based on Indexes, ex. [0,1,2] for X,Y,Z
-                                    #if type.sub == "INDEX":
                                     
                                     #Checks if opposite driver exists to select it
                                     if flip_name in dict_1 and j in dict_1[flip_name] and k in dict_1[flip_name][j]:
                                         index_new = dict_1[flip_name][j][k]
                                         driver_to = anim_data.drivers[index_new]
+                                        if driver_to.select == False:
+                                            drivers_effected+=1
                                         #Selects the mirrored driver
                                         driver_to.select = True
-                    
+                    #Selects all drivers of a bone with the same property, ex. ".rotation_euler"
                     elif self.sub == "PROP_BONE":
                         for i in dict_direction:
                             flip_name = flipNames(i)
                             
                             for j in dict_direction[i]:
-                                
-                                #for m in dict_1:
                                 for k in dict_1[i][j]:
                                     index_new = dict_1[i][j][k]
                                     driver_to = anim_data.drivers[index_new]
+                                    if driver_to.select == False:
+                                        drivers_effected+=1
                                     #Selects the mirrored driver
                                     driver_to.select = True
-                                    
+                    #Selects all the drivers of a bone
                     elif self.sub == "PROP_BONE_ALL":
                         for i in dict_direction:
                             flip_name = flipNames(i)
                             
                             for j in dict_1[i]:
-                                
-                                #for m in dict_1:
                                 for k in dict_1[i][j]:
                                     index_new = dict_1[i][j][k]
                                     driver_to = anim_data.drivers[index_new]
+                                    if driver_to.select == False:
+                                        drivers_effected+=1
                                     #Selects the mirrored driver
                                     driver_to.select = True
                                     
+                    #Selects all the drivers with the same property
                     elif self.sub == "PROP_ALL":
                         for a in dict_direction:
                             #flip_name = flipNames(i)
-                            
                             for i in dict_1:
                                 for j in dict_1[i]:
-                                    
                                     if j == a:
-                                        
                                         #for m in dict_1:
                                         for k in dict_1[i][j]:
                                             index_new = dict_1[i][j][k]
                                             driver_to = anim_data.drivers[index_new]
+                                            if driver_to.select == False:
+                                                drivers_effected+=1
                                             #Selects the mirrored driver
-                                            driver_to.select = True 
+                                            driver_to.select = True
+                                            
+                    if drivers_effected > 0:
+                        reportString = "%d Drivers Effected" % (drivers_effected)
+                    else:
+                        reportString = "%d Drivers Effected. None Effected" % (drivers_effected)
+                        
                 else:
                     reportString = "Object[%s] has No Drivers" % (bpy.context.object.name)
             else:
@@ -1327,22 +1376,6 @@ class RIG_DEBUGGER_OT_DriverOps(bpy.types.Operator):
                             else:
                                 print("Passed: %s" % (str(i)) )
                                 
-                        """
-                        print("\nitems(): %s" % (str(dict_1.items())) )
-                        
-                        print("\nkeys(): %s" % (str(dict_1.keys())) )
-                        
-                        print("\nlen() of dict_1: %d" % (len(dict_1)) )
-                        
-                        print("\nlen() of dict_1.keys(): %d" % (len(dict_1.keys())) )
-                        
-                        #Checks if nameFlipped is a bone in the armature
-                        if data.bones.get(nameFlipped) is not None:
-                        
-                        else:
-                            print("Bone Name \"%s\" isn\'t a bone." % (str(nameFlipped)) )
-                        
-                        """
                         #These are where the differences in what dict_1 bone names are selected and appended to dict_direction for mirror calculation
                         if self.type == "MIRROR_DRIVER_FROM_BONE_TEST_PRINT":
                             #for loop to only include selected pose bones in armature, not all of them
@@ -1641,6 +1674,108 @@ class RIG_DEBUGGER_OT_DriverOps(bpy.types.Operator):
         
         return {'FINISHED'}
         
+class RIG_DEBUGGER_OT_DriverExtrapolation(bpy.types.Operator):
+    bl_idname = "rig_debugger.driver_extrapolation"
+    bl_label = "Iterate Objects Debugging Operators"
+    bl_description = "To assist with debugging and development"
+    bl_options = {'UNDO',}
+    type: bpy.props.StringProperty(default="DEFAULT")
+    #sub: bpy.props.StringProperty(default="DEFAULT")
+    #index: bpy.props.IntProperty(default=0, min=0)
+    
+    def execute(self, context):
+        scene = bpy.context.scene
+        context = bpy.context
+        data = context.object.data
+        props = scene.RD_Props
+        
+        #Creates animation_data if there isn't none
+        if self.type != "":
+            reportString = "Done!"
+            anim_data = bpy.context.object.animation_data
+            
+            props_extrap = props.driver_extrapolation
+            
+            #If there is at least one driver in object
+            if anim_data != None:
+                if anim_data.drivers != None:
+                    
+                    #bone name dictionary from drivers[].datapath
+                    dict_1 = {}
+                    
+                    #instead of a copy of a dictionary, just have a list of strings of the names of the dictionary
+                    #dict_direction = []
+                    dict_direction = {}
+                    dict_selected = []
+                    dict_unselected = []
+                    
+                    #Schema: [selected drivers, total drivers that are 'LINEAR' or 'CONSTANT'
+                    linear = [0,0]
+                    constant = [0,0]
+                    modes = [0,0]
+                    total = 0
+                    selected = 0
+                    
+                    #if self.type == "PRINT_INFO" or self.type == "UPDATE":
+                    #gets all the drivers with .L or .R
+                    for i in enumerate(anim_data.drivers):
+                            
+                        #If the driver is selected, add this driver to dict_direction
+                        if i[1].select == True:
+                            if i[1].extrapolation != props_extrap:
+                                #modes is a placeholder to set it as the value of variable linear or constant
+                                modes[0]+= 1
+                                    
+                                if self.type == "UPDATE":
+                                    #Changes the extrapolation to the mode set
+                                    i[1].extrapolation = props_extrap
+                            selected+= 1
+                        #else:
+                        if i[1].extrapolation != props_extrap:
+                            modes[1]+= 1
+                                
+                        total+= 1
+                        
+                    if self.type == "UPDATE":
+                        reportString = "%d Drivers Changed to \"%s\" " % (modes[0], props_extrap)
+                        
+                    elif self.type == "PRINT_INFO":
+                        if props_extrap != 'LINEAR':
+                            linear[0] = modes[0]
+                            constant[0] = selected-modes[0]
+                            
+                            linear[1] = modes[1]
+                            constant[1] = total-modes[1]
+                        else:
+                            linear[0] = selected-modes[0]
+                            constant[0] = modes[0]
+                            
+                            linear[1] = total-modes[1]
+                            constant[1] = modes[1]
+                            
+                        print("Total Drivers Extrapolation:" )
+                        print("  Linear: %d/%d" % (linear[1], total))
+                        print("  Constant: %d/%d" % (constant[1], total))
+                        
+                        print("Selected Drivers Extrapolation:" )
+                        print("  Linear: %d/%d" % (linear[0], selected))
+                        print("  Constant: %d/%d" % (constant[0], selected))
+                        
+                        reportString = "Printed Info to Console"
+                        
+                else:
+                    reportString = "Object[%s] has No Drivers" % (bpy.context.object.name)
+            else:
+                reportString = "Object[%s] has No Animation_Data" % (bpy.context.object.name)
+                
+            print(reportString)
+            self.report({'INFO'}, reportString)
+                
+        #Resets default settings
+        self.type == "DEFAULT"
+        
+        return {'FINISHED'}
+        
 class RIG_DEBUGGER_UL_items(bpy.types.UIList):
     
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
@@ -1801,10 +1936,16 @@ class RIG_DEBUGGER_PT_CustomPanel1(bpy.types.Panel):
         row.label(text="Mirror Drivers:")
         
         row = col.row(align=True)
-        row.operator("rig_debugger.driver_mirror", icon="BONE_DATA", text="Active Bone Mirror Driver Test").type = "MIRROR_FROM_ACTIVE_BONE"
+        button = row.operator("rig_debugger.driver_mirror", icon="BONE_DATA", text="Active Bone Mirror Driver Test")
+        #button.type = "MIRROR_FROM_ACTIVE_BONE"
+        button.type = "ARMATURE"
+        button.sub = "ACTIVE_BONE_ALL"
         
         row = col.row(align=True)
-        row.operator("rig_debugger.driver_mirror", icon="BONE_DATA", text="Mirror Driver From Direction").type = "MIRROR_FROM_DIRECTION"
+        button = row.operator("rig_debugger.driver_mirror", icon="BONE_DATA", text="Mirror Driver From Direction")
+        #button.type = "MIRROR_FROM_DIRECTION"
+        button.type = "ARMATURE"
+        button.sub = "FROM_DIRECTION_ALL"
         
         row = col.row(align=True)
         row.prop(props, "mirror_direction", emboss= True, expand= True, icon="NONE")
@@ -1901,11 +2042,16 @@ class RIG_DEBUGGER_PT_CustomPanel2(bpy.types.Panel):
         row.label(text="Mirror Drivers:")
         
         row = col.row(align=True)
-        row.operator("rig_debugger.driver_mirror", icon="BONE_DATA", text="Active Bone Mirror Driver Test").type = "MIRROR_FROM_ACTIVE_BONE"
+        button = row.operator("rig_debugger.driver_mirror", icon= "DRIVER", text="From Active Drivers")
+        #button.type = "MIRROR_FROM_ACTIVE_DRIVERS"
+        button.type = "DRIVER_EDITOR"
+        button.sub = "ACTIVE_DRIVERS"
         
         row = col.row(align=True)
-        row.operator("rig_debugger.driver_mirror", icon="BONE_DATA", text="Mirror Driver  From Direction").type = "MIRROR_FROM_DIRECTION"
-        
+        button = row.operator("rig_debugger.driver_mirror", icon= "DRIVER", text="From Active Drivers and Direction")
+        #button.type = "MIRROR_FROM_DIRECTION_DRIVERS"
+        button.type = "DRIVER_EDITOR"
+        button.sub = "ACTIVE_FROM_DIRECTION"
         
         row = col.row(align=True)
         row.prop(props, "mirror_direction", emboss= True, expand= True, icon="NONE")
@@ -1922,10 +2068,10 @@ class RIG_DEBUGGER_PT_CustomPanel2(bpy.types.Panel):
         
         #Debug Operators
         row = col.row(align=True)
-        row.label(text="Driver Operators:")
+        row.label(text="Select Drivers:")
         
         row = col.row(align=True)
-        button = row.operator("rig_debugger.driver_ops", text="Select Mirror Drivers")
+        button = row.operator("rig_debugger.driver_ops", text="Mirror Drivers")
         button.type = "SELECT_MIRROR_DRIVER"
         button.sub = "INDEX"
         
@@ -1935,12 +2081,12 @@ class RIG_DEBUGGER_PT_CustomPanel2(bpy.types.Panel):
         button.sub = "PROP_BONE"
         
         row = col.row(align=True)
-        button = row.operator("rig_debugger.driver_ops", text="Select All Bone Drivers")
+        button = row.operator("rig_debugger.driver_ops", text="From Active Bones")
         button.type = "SELECT_MIRROR_DRIVER"
         button.sub = "PROP_BONE_ALL"
         
         row = col.row(align=True)
-        button = row.operator("rig_debugger.driver_ops", text="Select All Drivers With Property")
+        button = row.operator("rig_debugger.driver_ops", text="All Drivers With Property")
         button.type = "SELECT_MIRROR_DRIVER"
         button.sub = "PROP_ALL"
         
@@ -1960,6 +2106,16 @@ class RIG_DEBUGGER_PT_CustomPanel2(bpy.types.Panel):
         col.separator()
         
         row = col.row(align=True)
+        row.operator("rig_debugger.driver_extrapolation", icon="IPO_LINEAR", text="Set Active Driver Extrapolation To").type = "UPDATE"
+        row = col.row(align=True)
+        row.prop(props, "driver_extrapolation", emboss= True, expand= True, icon="NONE")
+        
+        row = col.row(align=True)
+        row.operator("rig_debugger.driver_extrapolation", icon="INFO", text="Print Active Driver Extrapolation Info").type = "PRINT_INFO"
+        
+        col.separator()
+        
+        row = col.row(align=True)
         row.operator("rig_debugger.debug", text="Print Add Driver Test").type = "PRINT_ADD_DRIVER_TEST"
         
         #Just to test my FlipNames function
@@ -1974,38 +2130,6 @@ class RIG_DEBUGGER_PT_CustomPanel2(bpy.types.Panel):
         row = col.row(align=True)
         row.operator("rig_debugger.debug", icon="INFO", text="Mirror Driver Test Print").type = "MIRROR_DRIVER_TEST_PRINT"
         
-        """
-        if ob.pose != None:
-            row = col.row(align=True)
-            row.label(text="Drivers: %d" % (len(ob.animation_data.drivers))) """
-            
-        if ob.animation_data is not None:
-            drivers = len(ob.animation_data.drivers)
-        else:
-            drivers = "[No Animation Data]"
-            
-        row = col.row(align=True)
-        row.prop(props, "dropdown_1", text="", icon="DOWNARROW_HLT")
-        row.label(icon= "DRIVER", text="Armature Drivers: %s" % (str(drivers)) )
-        
-        
-        
-        if props.dropdown_1 == True and type(drivers) != str:
-            row = col.row(align=True)
-            row.label(icon= "HIDE_OFF", text="Hidden: %d/%d" % (calculateUIALL("hide"), drivers) )
-            
-            row = col.row(align=True)
-            row.label(icon= "CHECKBOX_HLT", text="Muted: %d/%d" % (calculateUIALL("mute"), drivers) )
-            
-            row = col.row(align=True)
-            row.label(icon= "DECORATE_LOCKED", text="Locked: %d/%d" % (calculateUIALL("lock"), drivers) )
-            
-            row = col.row(align=True)
-            row.label(icon= "MODIFIER_ON", text="With Modifiers: %d/%d" % (calculateUIALL("modifiers"), drivers) )
-            
-        else:
-            row = col.row(align=True)
-            row.operator("rig_debugger.debug", icon="INFO", text="Create Animation_Data").type = "CREATE_ANIMATION_DATA"
             
         #End of CustomPanel
         
@@ -2170,6 +2294,8 @@ class RIG_DEBUGGER_Props(bpy.types.PropertyGroup):
     
     mirror_direction: bpy.props.EnumProperty(name="Mirror Direction", items= [("LEFT", "Left", listDesc0[0]), ("RIGHT", "Right", listDesc0[1])], description="Bone Name Direction to Mirror Drivers from", default="LEFT")#, update=ListOrderUpdate)
     
+    driver_extrapolation: bpy.props.EnumProperty(name="Driver Extrapolation", items= [("CONSTANT", "Constant", listDesc0[1]), ("LINEAR", "Linear", listDesc0[0])], description="Extrapolation mode of Driver", default="LINEAR")
+    
     #Dropdown for Iterate Display
     dropdown_1: bpy.props.BoolProperty(name="Dropdown", description="Show Props of all Drivers", default=True)
     
@@ -2219,6 +2345,7 @@ classes = (
     RIG_DEBUGGER_OT_Debugging,
     RIG_DEBUGGER_OT_DriverMirror,
     RIG_DEBUGGER_OT_DriverOps,
+    RIG_DEBUGGER_OT_DriverExtrapolation,
     #RIG_DEBUGGER_OT_UIOperators,
     
     RIG_DEBUGGER_UL_items,
