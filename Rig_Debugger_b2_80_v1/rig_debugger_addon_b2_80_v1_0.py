@@ -1716,30 +1716,38 @@ class RIG_DEBUGGER_OT_DriverExtrapolation(bpy.types.Operator):
                     total = 0
                     selected = 0
                     
-                    #if self.type == "PRINT_INFO" or self.type == "UPDATE":
-                    #gets all the drivers with .L or .R
-                    for i in enumerate(anim_data.drivers):
-                            
-                        #If the driver is selected, add this driver to dict_direction
-                        if i[1].select == True:
-                            if i[1].extrapolation != props_extrap:
-                                #modes is a placeholder to set it as the value of variable linear or constant
-                                modes[0]+= 1
-                                    
-                                if self.type == "UPDATE":
+                    if self.type == "UPDATE":
+                        #gets all the drivers with .L or .R
+                        for i in enumerate(anim_data.drivers):
+                            #If the driver is selected, add this driver to dict_direction
+                            if i[1].select == True:
+                                if i[1].extrapolation != props_extrap:
+                                    #modes is a placeholder to set it as the value of variable linear or constant
+                                    modes[0]+= 1
                                     #Changes the extrapolation to the mode set
                                     i[1].extrapolation = props_extrap
-                            selected+= 1
-                        #else:
-                        if i[1].extrapolation != props_extrap:
-                            modes[1]+= 1
-                                
-                        total+= 1
-                        
-                    if self.type == "UPDATE":
-                        reportString = "%d Drivers Changed to \"%s\" " % (modes[0], props_extrap)
-                        
-                    elif self.type == "PRINT_INFO":
+                                selected+= 1
+                                    
+                            total+= 1
+                            
+                        reportString = "%d/%d Drivers Changed to \"%s\" " % (modes[0], total, props_extrap)
+                            
+                    if self.type == "PRINT_INFO":
+                        #gets all the drivers with .L or .R
+                        for i in enumerate(anim_data.drivers):
+                            #If the driver is selected, add this driver to dict_direction
+                            if i[1].select == True:
+                                if i[1].extrapolation != props_extrap:
+                                    #modes is a placeholder to set it as the value of variable linear or constant
+                                    modes[0]+= 1
+                                selected+= 1
+                            #else:
+                            if i[1].extrapolation != props_extrap:
+                                modes[1]+= 1
+                                    
+                            total+= 1
+                            
+                        #Sets variables in order to print
                         if props_extrap != 'LINEAR':
                             linear[0] = modes[0]
                             constant[0] = selected-modes[0]
