@@ -4,8 +4,6 @@
 
 #Version 1.0000, 8/4/2019
 
-
-
 #To do
 1. use .startswith() and .split()
 if d.data_path.startswith('pose.bones'):
@@ -14,17 +12,11 @@ if d.data_path.startswith('pose.bones'):
         if id == pb.name and prop == 'location':
             break
 
-2. Need to add functions that can 
-    1. Sort the drivers by .L/.R and middle names, by using the bpy.ops.anim.channels_move(direction='UP') operators. I might have to add another panel inside the Driver Editor Window 
-    2. Automatically change the color_modes of every driver. Since it isn't an option in the UI
-
 #New Notes
 ##############
 
 for i in enumerate(bpy.data.objects['Armature.1'].animation_data.drivers):
     print("%d: Index %d" % (i[0], i[1].array_index))
-
-bpy.context.object.animation_data.drivers[0].select
 
 bpy.context.object.pose.bones["Hoof.Front.Roll.Back.L"].rotation_euler[2]
 #Adds a driver
@@ -61,12 +53,6 @@ bpy.context.object.animation_data.drivers[0].driver.type
 
 bpy.context.object.animation_data.drivers[0].driver.use_self
 #Returns boolean, False or True
-
-bpy.context.object.animation_data.drivers[0].color_mode
-#Returns 'AUTO_RGB'
-
-bpy.context.object.animation_data.drivers[16].auto_smoothing
-#Returns 'CONT_ACCEL'
 
 len(bpy.data.objects['Armature.1'].animation_data.drivers)
 #Returns number of drivers in the object
@@ -122,9 +108,6 @@ bpy.data.objects['Armature.1'].animation_data.drivers[0].color
 #Returns a color Color((1.0, 0.3999999761581421, 0.3999999761581421))
 
 
-#Armature Crap
-bpy.data.armatures['Armature'].bones["Thigh.Left"].select
-#Returns Boolean
 
 ##############
 #Old Notes
@@ -186,3 +169,31 @@ if not ob.select_get():
     
 bpy.context.preferences.addons[0]
 #returns the activated Addons the User has
+
+
+#This is for adding an Operator that creates empty Vertex Groups to an Object's Data based on the names of the Armature's bones that are selected
+
+bpy.context.object.vertex_groups.get("Spine") is not None
+#Returns Boolean
+#Checks if Vertex Group of Bone Name exists
+
+bpy.context.active_pose_bone
+#Returns bpy.data.objects['Armature.1'].pose.bones["IK.Hoof.Back.R"]
+
+bpy.context.object
+#Returns bpy.data.objects['Body.1']
+
+bpy.context.active_object
+#Returns bpy.data.objects['Body.1']
+
+bpy.context.selected_objects
+#Returns [bpy.data.objects['Body.1'], bpy.data.objects['Armature.1']]
+
+bpy.context.selected_pose_bones
+#Returns [bpy.data.objects['Armature.1'].pose.bones["IK.Hoof.Back.R"]]
+
+bpy.context.selected_pose_bones_from_active_object
+#Returns [bpy.data.objects['Armature.1'].pose.bones["IK.Hoof.Back.R"]]
+
+bpy.context.object.modifiers[0]
+#Able to access the modifiers

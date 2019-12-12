@@ -1788,6 +1788,83 @@ class RIG_DEBUGGER_OT_DriverExtrapolation(bpy.types.Operator):
         
         return {'FINISHED'}
         
+class RIG_DEBUGGER_OT_BoneOps(bpy.types.Operator):
+    bl_idname = "rig_debugger.bone_ops"
+    bl_label = "Custom Bone Operators"
+    bl_description = "To assist with debugging and development"
+    bl_options = {'UNDO',}
+    type: bpy.props.StringProperty(default="DEFAULT")
+    #sub: bpy.props.StringProperty(default="DEFAULT")
+    #index: bpy.props.IntProperty(default=0, min=0)
+    
+    def execute(self, context):
+        scene = bpy.context.scene
+        context = bpy.context
+        data = context.object.data
+        props = scene.RD_Props
+        
+        #Creates animation_data if there isn't none
+        if self.type == "CREATE_EMPTY_BONE_GROUPS":
+            
+            if len(context.selected_objects) > 0:
+                
+                selected_bones = context.selected_pose_bones_from_active_object
+                
+                if len(selected_bones) > 0:
+                    
+                    selected_object = None
+                    groups_added = 0
+                    groups_existing = 0
+                    
+                    #This is the only way to know for sure that this is the object you want to add vertex groups to
+                    if context.object.type == 'MESH':
+                        selected_object = context.object
+                        
+                    #If active object is an Amature, you don't know which object is the Mesh of the armature
+                    elif context.object.type == 'ARMATURE':
+                        for i in context.selected_objects:
+                            #If object is a MESH
+                            if i.type == 'MESH':
+                                #Checks every modifier to see which one has the armature
+                                for j in i.modifiers:
+                                    if j.type == 'ARMATURE' and j.show_viewport == True:    
+                                        #If the armature is set in the Armature Modifier
+                                        if j.object is not None and j.object.type == 'ARMATURE':
+                                            selected_object = i
+                                            
+                    else:
+                        reportString = "Object to add Empty Vertex Groups to not Found."
+                        pass
+                    
+                    if selected_object != None:
+                        #Goes through every selected bone of armature
+                        for i in selected_bones:
+                            
+                            if selected_object.vertex_groups.get(i.name) is None:
+                                selected_object.vertex_groups.new(name=i.name)
+                                groups_added+= 1
+                            else:
+                                groups_existing+=1
+                                
+                        #if groups_added > 0:
+                        groups_total = groups_added + groups_existing
+                        reportString = "Added %d/%d New Vertex Groups to \"%s\"" % (groups_added, groups_total, selected_object.name)
+                    else:
+                        pass
+                        
+                else:
+                    reportString = "No Bones Selected!"
+            else:
+                reportString = "Only one object selected"
+                
+            print(reportString)
+            self.report({'INFO'}, reportString)
+                
+        #Resets default settings
+        self.type == "DEFAULT"
+        
+        return {'FINISHED'}
+        
 class RIG_DEBUGGER_UL_items(bpy.types.UIList):
     
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
@@ -1973,6 +2050,13 @@ class RIG_DEBUGGER_PT_CustomPanel1(bpy.types.Panel):
         row = col.row(align=True)
         row.prop(props, "override_existing_fcurves", text="", emboss= True, icon="NONE")#"DECORATE_OVERRIDE")
         row.prop(props, "override_existing_fcurves", text="Override Existing F-Curves", emboss= False, icon="DECORATE_OVERRIDE")
+        
+        col.separator()
+        
+        row = col.row(align=True)
+        row.label(text="Vertex Group Operators:")
+        row = col.row(align=True)
+        row.operator("rig_debugger.bone_ops", text="Create Empty Vertex Groups From Bones", icon="GROUP_VERTEX").type = "CREATE_EMPTY_BONE_GROUPS"
         
         col.separator()
         
@@ -2383,6 +2467,8 @@ classes = (
     RIG_DEBUGGER_OT_DriverMirror,
     RIG_DEBUGGER_OT_DriverOps,
     RIG_DEBUGGER_OT_DriverExtrapolation,
+    
+    RIG_DEBUGGER_OT_BoneOps,
     #RIG_DEBUGGER_OT_UIOperators,
     
     RIG_DEBUGGER_UL_items,
