@@ -564,6 +564,8 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
             self.sub == "ACTIVE_DRIVERS", "ACTIVE_FROM_DIRECTION"
         """
         
+        #Note: print() functions after #10 are the ones I commented to not print. Uncomment them to have them as before.
+        
         #if self.type == "MIRROR_FROM_ACTIVE_BONE" or self.type == "MIRROR_FROM_DIRECTION":
         if self.type == "ARMATURE":
             if self.sub == "ACTIVE_BONE_ALL" or self.type == "FROM_DIRECTION_ALL":
@@ -627,7 +629,7 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
                     nameNormal = split[1]
                     
                     nameFlipped = flipNames(nameNormal)
-                    print("nameNormal: %s; nameFlipped: %s;" % (str(nameNormal), str(nameFlipped)) )
+                    #10print("nameNormal: %s; nameFlipped: %s;" % (str(nameNormal), str(nameFlipped)) )
                     #splits data_path to get property string name to drive ex. ".rotation_euler"
                     rsplit = data_path.rsplit('.', 1)
                     
@@ -661,7 +663,8 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
                     else:
                         pass
                 else:
-                    print("Passed: %s" % (str(i)) )
+                    #10print("Passed: %s" % (str(i)) )
+                    pass
                     
             #These are where the differences in what dict_1 bone names are selected and appended to dict_direction for mirror calculation
             #if self.type == "MIRROR_FROM_ACTIVE_BONE":
@@ -682,12 +685,12 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
                 #elif self.type == "MIRROR_FROM_DIRECTION":
                 elif self.sub == "FROM_DIRECTION_ALL":
                     #for loop to only include selected pose bones in armature, but takes into account the direction selected in operator
-                    print("props.mirror_direction: %s" % (props.mirror_direction))
+                    #10print("props.mirror_direction: %s" % (props.mirror_direction))
                     mirror_direction = props.mirror_direction
                     #slice will turn "LEFT" to "l" and lowercase it
                     #to_find = mirror_direction[0:1].lower()
                     to_find = mirror_direction[0].lower()
-                    print("to_find: %s" % (to_find))
+                    #10print("to_find: %s" % (to_find))
                     
                     for i in dict_1:
                         flip_name = flipNames(i)
@@ -706,7 +709,7 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
                 #This one requires for dict_1 to be built entirely, in order to find if flipNames() exists
                 if self.sub == "ACTIVE_FROM_DIRECTION":
                     #Only mirros drivers that are selected, and takes the props.mirror_direction for what driver to use to mirror
-                    print("props.mirror_direction: %s" % (props.mirror_direction))
+                    #10print("props.mirror_direction: %s" % (props.mirror_direction))
                     mirror_direction = props.mirror_direction
                     #slice will turn "LEFT" to "l" and lowercase it
                     #to_find = mirror_direction[0:1].lower()
@@ -740,7 +743,7 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
                 pass
                 
             #print("\ndict_direction.items(): %s" % (str(dict_direction.items())) )
-            print("\ndict_direction.items(): %s" % (str(dict_direction)) )
+            #10print("\ndict_direction.items(): %s" % (str(dict_direction)) )
             
             #if self.type != "MIRROR_FROM_ACTIVE_DRIVERS" or self.type != "MIRROR_FROM_DIRECTION_DRIVERS":
             if self.type != "DRIVER_EDITOR":
@@ -760,15 +763,15 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
                 if data.bones.get(nameFlipped) is not None:
                 
                     for j in dictionary[i]:
-                        print("j.items(%s): %s" % (j, dictionary[i].items()) )
-                        print("j: %s" % (j) )
+                        #10print("j.items(%s): %s" % (j, dictionary[i].items()) )
+                        #10print("j: %s" % (j) )
                         
                         for k in dictionary[i][j]:
-                            print("k: %s" % (k) )
+                            #10print("k: %s" % (k) )
                             
                             index_driver = dict_1[i][j][k]
                             
-                            print("index_driver Flipped: %r" % (nameFlipped in dict_1 and j in dict_1[nameFlipped] and k in dict_1[nameFlipped][j]) )
+                            #10print("index_driver Flipped: %r" % (nameFlipped in dict_1 and j in dict_1[nameFlipped] and k in dict_1[nameFlipped][j]) )
                             
                             driver_to_flip = anim_data.drivers[index_driver]
                             
@@ -780,7 +783,7 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
                             #name of the bone's property that is driver ex. ".rotation_euler"
                             prop = rsplit[1]
                             
-                            print("data_path: %s; index: %d" % (data_path, index_driver) )
+                            #10print("data_path: %s; index: %d" % (data_path, index_driver) )
                             
                             #exists is if the flipped driver already existed
                             exists = False
@@ -808,7 +811,7 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
                                         #Removes the 1 modifier created when adding a new driver
                                         driver_new.modifiers.remove(driver_new.modifiers[0])
                             
-                            print("New Driver: %s; Prop: %s; Index: %d" % (nameFlipped, j, k))
+                            #10print("New Driver: %s; Prop: %s; Index: %d" % (nameFlipped, j, k))
                             
                             #This changes the driver_new's properties
                             
@@ -828,7 +831,7 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
                             driver_new_vars = driver_new.driver.variables
                             #driver_vars is variables of driver_to_flip
                             driver_vars = driver_to_flip.driver.variables
-                            print("variables: %d" % (len(driver_vars)))
+                            #10print("variables: %d" % (len(driver_vars)))
                             
                             #print("" % ())
                             
@@ -837,9 +840,9 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
                                 #This will "Overide"/remove all previous variables in the existing mirrored driver, in order for correct new variables to be copied/duplicated
                                 #exists is if the flipped driver already existed
                                 if exists == True:
-                                    print("exists == True")
+                                    #10print("exists == True")
                                     for m in enumerate(reversed(driver_new_vars)):
-                                        print("Removed m[1] variable: %s" % (m[1].name))
+                                        #10print("Removed m[1] variable: %s" % (m[1].name))
                                         driver_new_vars.remove(m[1])
                                     
                                 #This mirrors the keyframes of the drivers
@@ -865,7 +868,7 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
                                         
                                 #This mirrors the driver
                                 for m in enumerate(driver_vars):
-                                    print("  Var[%d]: \"%s\"; Targets: %d" % (m[0], m[1].name, len(m[1].targets)))
+                                    #10print("  Var[%d]: \"%s\"; Targets: %d" % (m[0], m[1].name, len(m[1].targets)))
                                     
                                     new_var = driver_new_vars.new()
                                     
@@ -909,7 +912,7 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
                                             #elif new_var.type == 'LOC_DIFF':
                                             #    target_p.transform_space = p[1].transform_space
                                             
-                                            print("  %d: transform_type: %s" % (p[0], p[1].transform_type))
+                                            #10print("  %d: transform_type: %s" % (p[0], p[1].transform_type))
                                             
                             else:
                                 print("No Variables")
@@ -917,7 +920,7 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
                     print("\"%s\" isn\'t a bone" % (nameFlipped))
                     
             #print("\ndict_direction.items(): %s" % (str(dict_direction.items())) )
-            print("\ndict_direction.items(): %s" % (str(dict_direction)) )
+            #10print("\ndict_direction.items(): %s" % (str(dict_direction)) )
             
             reportString = "Done!"
                 
@@ -1651,6 +1654,7 @@ class RIG_DEBUGGER_OT_DriverOps(bpy.types.Operator):
                             pass
                     else:
                         print("Passed: %s" % (str(i)) )
+                        pass
                         
                 print("\nitems(): %s" % (str(dict_1.items())) )
                 
@@ -1949,11 +1953,14 @@ class RIG_DEBUGGER_PT_CustomPanel1(bpy.types.Panel):
         button.type = "ARMATURE"
         button.sub = "ACTIVE_BONE_ALL"
         
+        col.separator()
+        
         row = col.row(align=True)
         button = row.operator("rig_debugger.driver_mirror", icon="BONE_DATA", text="Mirror Driver From Direction")
         #button.type = "MIRROR_FROM_DIRECTION"
         button.type = "ARMATURE"
         button.sub = "FROM_DIRECTION_ALL"
+        
         
         row = col.row(align=True)
         row.prop(props, "mirror_direction", emboss= True, expand= True, icon="NONE")
@@ -1969,60 +1976,29 @@ class RIG_DEBUGGER_PT_CustomPanel1(bpy.types.Panel):
         
         col.separator()
         
-        """
-        if ob.pose != None:
-            row = col.row(align=True)
-            row.label(text="Drivers: %d" % (len(ob.animation_data.drivers))) """
-            
-        if ob.animation_data is not None:
-            drivers = len(ob.animation_data.drivers)
-        else:
-            drivers = "[No Animation Data]"
-            
-        row = col.row(align=True)
-        row.prop(props, "dropdown_1", text="", icon="DOWNARROW_HLT")
-        row.label(icon= "DRIVER", text="Armature Drivers: %s" % (str(drivers)) )
-        
-        
-        
-        if props.dropdown_1 == True and type(drivers) != str:
-            row = col.row(align=True)
-            row.label(icon= "HIDE_OFF", text="Hidden: %d/%d" % (calculateUIALL("hide"), drivers) )
-            
-            row = col.row(align=True)
-            row.label(icon= "CHECKBOX_HLT", text="Muted: %d/%d" % (calculateUIALL("mute"), drivers) )
-            
-            row = col.row(align=True)
-            row.label(icon= "DECORATE_LOCKED", text="Locked: %d/%d" % (calculateUIALL("lock"), drivers) )
-            
-            row = col.row(align=True)
-            row.label(icon= "MODIFIER_ON", text="With Modifiers: %d/%d" % (calculateUIALL("modifiers"), drivers) )
-            
-        else:
-            row = col.row(align=True)
-            row.operator("rig_debugger.debug", icon="INFO", text="Create Animation_Data").type = "CREATE_ANIMATION_DATA"
-            
-        col.separator()
-        
         #Debug Operators
         row = col.row(align=True)
+        row.prop(props, "dropdown_debugger", icon="DOWNARROW_HLT", text="")
         row.label(text="Debug Operators:")
         
-        row = col.row(align=True)
-        row.operator("rig_debugger.debug", icon="INFO", text="Mirror Driver Test Print").type = "MIRROR_DRIVER_TEST_PRINT"
+        col.separator()
         
-        row = col.row(align=True)
-        row.operator("rig_debugger.debug", text="Print All Drivers").type = "PRINT_ALL"
-        
-        row = col.row(align=True)
-        row.operator("rig_debugger.debug", text="Print Add Driver Test").type = "PRINT_ADD_DRIVER_TEST"
-        
-        #Just to test my FlipNames function
-        row = col.row(align=True)
-        row.operator("rig_debugger.debug", text="Flip Names Test").type = "FLIP_NAMES_TEST"
-        
-        row = col.row(align=True)
-        row.operator("rig_debugger.debug", text="Mirror Driver Test").type = "MIRROR_DRIVER_TEST"
+        if props.dropdown_debugger == True:
+            row = col.row(align=True)
+            row.operator("rig_debugger.debug", icon="INFO", text="Mirror Driver Test Print").type = "MIRROR_DRIVER_TEST_PRINT"
+            
+            row = col.row(align=True)
+            row.operator("rig_debugger.debug", text="Print All Drivers").type = "PRINT_ALL"
+            
+            row = col.row(align=True)
+            row.operator("rig_debugger.debug", text="Print Add Driver Test").type = "PRINT_ADD_DRIVER_TEST"
+            
+            #Just to test my FlipNames function
+            row = col.row(align=True)
+            row.operator("rig_debugger.debug", text="Flip Names Test").type = "FLIP_NAMES_TEST"
+            
+            row = col.row(align=True)
+            row.operator("rig_debugger.debug", text="Mirror Driver Test").type = "MIRROR_DRIVER_TEST"
         
         #End of CustomPanel
         
@@ -2104,6 +2080,7 @@ class RIG_DEBUGGER_PT_CustomPanel2(bpy.types.Panel):
         
         row = col.row(align=True)
         
+        """
         if anim_data != None:
             row.label(text="Driver[0]\'s Extrapolation")
             row = col.row(align=True)
@@ -2111,39 +2088,91 @@ class RIG_DEBUGGER_PT_CustomPanel2(bpy.types.Panel):
         else:
             row.operator("rig_debugger.debug", icon="INFO", text="Create Animation_Data").type = "CREATE_ANIMATION_DATA"
             
+        col.separator() """
+        #IPO_CONSTANT IPO_LINEAR
+        
+        #icon = "IPO_CONSTANT" if props.driver_extrapolation is 'CONSTANT' else "IPO_LINEAR"
+        
+        row = col.row(align=True)
+        row.label(text="Effect Selected Drivers:")
+        
+        row = col.row(align=True)
+        row.operator("rig_debugger.driver_extrapolation", text="Set Extrapolation").type = "UPDATE"
+        row.prop(props, "driver_extrapolation", icon="NONE", text="", emboss= True, expand= False)
+        
         col.separator()
         
         row = col.row(align=True)
-        row.operator("rig_debugger.driver_extrapolation", icon="IPO_LINEAR", text="Set Active Driver Extrapolation To").type = "UPDATE"
-        row = col.row(align=True)
-        row.prop(props, "driver_extrapolation", emboss= True, expand= True, icon="NONE")
-        
-        row = col.row(align=True)
-        row.operator("rig_debugger.driver_extrapolation", icon="INFO", text="Print Active Driver Extrapolation Info").type = "PRINT_INFO"
+        row.prop(props, "dropdown_debugger", icon="DOWNARROW_HLT", text="")
+        row.label(text="Driver Debugger:")
         
         col.separator()
         
-        row = col.row(align=True)
-        row.operator("rig_debugger.debug", text="Print Add Driver Test").type = "PRINT_ADD_DRIVER_TEST"
-        
-        #Just to test my FlipNames function
-        row = col.row(align=True)
-        row.operator("rig_debugger.debug", text="Flip Names Test").type = "FLIP_NAMES_TEST"
-        
-        row = col.row(align=True)
-        row.operator("rig_debugger.debug", text="Mirror Driver Test").type = "MIRROR_DRIVER_TEST"
-        
-        
-        
-        row = col.row(align=True)
-        row.operator("rig_debugger.debug", icon="INFO", text="Mirror Driver Test Print").type = "MIRROR_DRIVER_TEST_PRINT"
-        
+        if props.dropdown_debugger == True:
+            row = col.row(align=True)
+            row.operator("rig_debugger.driver_extrapolation", icon="INFO", text="Print Active Driver Extrapolation Info").type = "PRINT_INFO"
             
         #End of CustomPanel
         
-class RIG_DEBUGGER_PT_DriverInfo(bpy.types.Panel):
+class RIG_DEBUGGER_PT_DriverInfo1(bpy.types.Panel):
     #A Custom Panel in Viewport
-    #bl_idname = "RIG_DEBUGGER_PT_DriverInfo"
+    #bl_idname = "RIG_DEBUGGER_PT_DriverInfo1"
+    #bl_parent_id = "RIG_DEBUGGER_PT_CustomPanel2", "RIG_DEBUGGER_PT_CustomPanel1"
+    bl_label = "Armature Drivers Info"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = 'UI'
+    #bl_context = "output"
+    bl_category = "Rig Debugger"
+    
+    # draw function
+    def draw(self, context):
+                 
+        layout = self.layout
+        ob = bpy.context.object
+        scene = context.scene
+        props = scene.RD_Props
+        
+        #Layout Starts
+        col = layout.column()
+        
+        #row = col.row(align=True)
+        
+        anim_data = ob.animation_data
+            
+        if ob.animation_data is not None:
+            drivers = len(ob.animation_data.drivers)
+        else:
+            drivers = "[No Animation Data]"
+            
+        row = col.row(align=True)
+        row.prop(props, "dropdown_1", text="", icon="DOWNARROW_HLT")
+        row.label(icon= "DRIVER", text="Armature Drivers: %s" % (str(drivers)) )
+        
+        
+        
+        if props.dropdown_1 == True:
+            if type(drivers) != str:
+                row = col.row(align=True)
+                row.label(icon= "HIDE_OFF", text="Hidden: %d/%d" % (calculateUIALL("hide"), drivers) )
+                
+                row = col.row(align=True)
+                row.label(icon= "CHECKBOX_HLT", text="Muted: %d/%d" % (calculateUIALL("mute"), drivers) )
+                
+                row = col.row(align=True)
+                row.label(icon= "DECORATE_LOCKED", text="Locked: %d/%d" % (calculateUIALL("lock"), drivers) )
+                
+                row = col.row(align=True)
+                row.label(icon= "MODIFIER_ON", text="With Modifiers: %d/%d" % (calculateUIALL("modifiers"), drivers) )
+                
+            else:
+                row = col.row(align=True)
+                row.operator("rig_debugger.debug", icon="INFO", text="Create Animation_Data").type = "CREATE_ANIMATION_DATA"
+            
+        #End of CustomPanel
+        
+class RIG_DEBUGGER_PT_DriverInfo2(bpy.types.Panel):
+    #A Custom Panel in Viewport
+    #bl_idname = "RIG_DEBUGGER_PT_DriverInfo1"
     #bl_parent_id = "RIG_DEBUGGER_PT_CustomPanel2", "RIG_DEBUGGER_PT_CustomPanel1"
     bl_label = "Armature Drivers Info"
     bl_space_type = "GRAPH_EDITOR"
@@ -2302,12 +2331,12 @@ class RIG_DEBUGGER_Props(bpy.types.PropertyGroup):
     
     mirror_direction: bpy.props.EnumProperty(name="Mirror Direction", items= [("LEFT", "Left", listDesc0[0]), ("RIGHT", "Right", listDesc0[1])], description="Bone Name Direction to Mirror Drivers from", default="LEFT")#, update=ListOrderUpdate)
     
-    driver_extrapolation: bpy.props.EnumProperty(name="Driver Extrapolation", items= [("CONSTANT", "Constant", listDesc0[1]), ("LINEAR", "Linear", listDesc0[0])], description="Extrapolation mode of Driver", default="LINEAR")
+    driver_extrapolation: bpy.props.EnumProperty(name="Driver Extrapolation", items= [("CONSTANT", "Constant", listDesc0[1], "IPO_CONSTANT", 0), ("LINEAR", "Linear", listDesc0[0], "IPO_LINEAR", 1)], description="Extrapolation mode of Driver", default="LINEAR")
     
     #Dropdown for Iterate Display
     dropdown_1: bpy.props.BoolProperty(name="Dropdown", description="Show Props of all Drivers", default=True)
     
-    dropdown_2: bpy.props.BoolProperty(name="Dropdown", description="Show Props of active Driver", default=True)
+    dropdown_debugger: bpy.props.BoolProperty(name="Dropdown", description="Show Props of active Driver", default=True)
     
     collection_active: bpy.props.PointerProperty(name="Collection to add Collections for Object duplicates", type=bpy.types.Collection)
     
@@ -2360,7 +2389,8 @@ classes = (
     
     RIG_DEBUGGER_PT_CustomPanel1,
     RIG_DEBUGGER_PT_CustomPanel2,
-    RIG_DEBUGGER_PT_DriverInfo,
+    RIG_DEBUGGER_PT_DriverInfo1,
+    RIG_DEBUGGER_PT_DriverInfo2,
     
     RIG_DEBUGGER_PreferencesMenu,
     #RIG_DEBUGGER_CollectionObjects,
