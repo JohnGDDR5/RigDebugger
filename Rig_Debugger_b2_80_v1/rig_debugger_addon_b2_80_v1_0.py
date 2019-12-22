@@ -1865,66 +1865,312 @@ class RIG_DEBUGGER_OT_BoneOps(bpy.types.Operator):
         
         return {'FINISHED'}
         
-class RIG_DEBUGGER_UL_items(bpy.types.UIList):
+class RIG_DEBUGGER_OT_VertexGroupOps(bpy.types.Operator):
+    bl_idname = "rig_debugger.vertex_group_influence"
+    bl_label = "Custom Vertex Group Operators"
+    bl_description = "To assist with debugging and development"
+    bl_options = {'UNDO',}
+    type: bpy.props.StringProperty(default="DEFAULT")
+    include: bpy.props.BoolProperty(default=False)
+    mirror: bpy.props.BoolProperty(default=False)
+    #sub: bpy.props.StringProperty(default="DEFAULT")
+    #index: bpy.props.IntProperty(default=0, min=0)
     
-    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+    def execute(self, context):
         scene = bpy.context.scene
-        data = bpy.data
+        context = bpy.context
+        data = context.object.data
         props = scene.RD_Props
         
-        #active = props.RIA_ULIndex
-        IMCollect = props.collections
-        
-        if self.layout_type in {'DEFAULT', 'COMPACT'}:
+        #Creates animation_data if there isn't none
+        if self.type == "CREATE_EMPTY_BONE_GROUPS":
             
-            row = layout.row(align=True)
-            
-            if len(IMCollect) > 0:
-                #obName
-                #obName = item.object.name if item.object != None else "Row"+str(index)
+            if len(context.selected_objects) > 0:
                 
-                #obItems
-                if item.collection != None:
-                    obItems = len(item.collection.objects)
-                else:
-                    obItems = 0
+                selected_bones = context.selected_pose_bones_from_active_object
                 
-                info = '%d. (%d)' % (index+1, obItems)#, obName, obItems)
-                #bpy.context.scene.RD_Props.collections.add()
-                
-                #Displays icon of objects in list
-                if props.display_icons == True:
+                if len(selected_bones) > 0:
                     
-                    if item.object != "EMPTY" and item.icon != "NONE":
-                        row.label(text="", icon=item.icon)
+                    selected_object = None
+                    groups_added = 0
+                    groups_existing = 0
+                    
+                    #This is the only way to know for sure that this is the object you want to add vertex groups to
+                    if context.object.type == 'MESH':
+                        selected_object = context.object
                         
+                    #If active object is an Amature, you don't know which object is the Mesh of the armature
+                    elif context.object.type == 'ARMATURE':
+                        for i in context.selected_objects:
+                            #If object is a MESH
+                            if i.type == 'MESH':
+                                #Checks every modifier to see which one has the armature
+                                for j in i.modifiers:
+                                    if j.type == 'ARMATURE' and j.show_viewport == True:    
+                                        #If the armature is set in the Armature Modifier
+                                        if j.object is not None and j.object.type == 'ARMATURE':
+                                            selected_object = i
+                                            
                     else:
-                        #obIcon = objectIcon(item.object)
-                        row.label(text="", icon="QUESTION")
-                        
-                #Checks if the item has an object pointed
-                if item.object != None:
-                    row.prop(item.object, "name", text=info)
+                        reportString = "Object to add Empty Vertex Groups to not Found."
+                        pass
                     
-                else:
-                    row.label(text=info+": [No Object]")
-                
-                if props.display_collections == True:
-                    if item.collection != None:
-                        row.prop(item.collection, "name", text="", icon="GROUP")
-                        
+                    if selected_object != None:
+                        #Goes through every selected bone of armature
+                        for i in selected_bones:
+                            
+                            if selected_object.vertex_groups.get(i.name) is None:
+                                selected_object.vertex_groups.new(name=i.name)
+                                groups_added+= 1
+                            else:
+                                groups_existing+=1
+                                
+                        #if groups_added > 0:
+                        groups_total = groups_added + groups_existing
+                        reportString = "Added %d/%d New Vertex Groups to \"%s\"" % (groups_added, groups_total, selected_object.name)
                     else:
-                        row.label(text="[No Collection]")
-                    
+                        pass
+                        
+                else:
+                    reportString = "No Bones Selected!"
             else:
-                row.label(text="No Iterations Here")
+                reportString = "Only one object selected"
                 
-        #Theres nothing in this layout_type since it isn't intended to be used.
-        elif self.layout_type in {'GRID'}:
-            layout.alignment = 'CENTER'
-
-    def invoke(self, context, event):
-        pass
+            print(reportString)
+            self.report({'INFO'}, reportString)
+                
+        #Resets default settings
+        self.type == "DEFAULT"
+        
+        return {'FINISHED'}
+        
+class RIG_DEBUGGER_OT_VertexGroup_Ops(bpy.types.Operator):
+    bl_idname = "rig_debugger.vertex_group_ops"
+    bl_label = "Custom Vertex Group Operators"
+    bl_description = "To assist with debugging and development"
+    bl_options = {'UNDO',}
+    type: bpy.props.StringProperty(default="DEFAULT")
+    #include: bpy.props.BoolProperty(default=False)
+    #mirror: bpy.props.BoolProperty(default=False)
+    #sub: bpy.props.StringProperty(default="DEFAULT")
+    #index: bpy.props.IntProperty(default=0, min=0)
+    
+    #Resets default settings
+    #@classmethod
+    @staticmethod
+    def resetSelf(self):
+        self.type = "DEFAULT"
+        self.include = False
+        self.mirror = False
+        print("Reset States: %s, %d, %d" % (self.type, self.include, self.mirror) )
+        #return None
+    
+    #This function will check to change/reset the previous mode of the object for operator to work
+    def previous_mode(prev_mode, context, before=True):
+        #sets string prev_mode
+        prev_mode = ob.mode
+        ob = context.object
+        
+        #This checks to see if this is before the operator starts or after to reset the previous object mode
+        if before == True:
+            if prev_mode != ob.mode:
+                #prev_mode = ob.mode
+                bpy.ops.object.mode_set(mode = 'OBJECT')
+        else:
+            if prev_mode == ob.mode:
+                #prev_mode = ob.mode
+                bpy.ops.object.mode_set(mode = prev_mode)
+            
+        return None#prev_mode
+        
+    #def index_check(type):
+    def index_check(index, type, iterator=None):
+        if type == "ADD":
+            print("bruh")
+        if type == "REMOVE":
+            if len(iterator) > 0 and index > 0:
+                index-=1
+                #print("bruh")
+        return index
+    
+    @classmethod
+    def poll(cls, context):
+        #scene = bpy.context.scene
+        #props = scene.IM_Props
+        #The wanted object types
+        ob_types = ["MESH"]
+        
+        #if wanted object type is inside ob_types
+        return context.object.type in ob_types
+    
+    def execute(self, context):
+        scene = bpy.context.scene
+        #context = bpy.context
+        data = context.object.data
+        props = scene.RD_Props
+        #print("" % () )
+        vg = bpy.context.object.vertex_groups
+        vg_active = vg.active
+        
+        reportString = "Done!"
+        
+        def groupExists(vg_active, groups):
+            #groups = props.vertex_groups
+            for i in groups:
+                if i.name == vg_active.name:
+                    return True
+                    
+            return False
+        
+        #Creates animation_data if there isn't none
+        if self.type == "FROM_SELECTION":
+            
+            previous_mode = context.object.mode
+            
+            
+            
+            if len(context.object.vertex_groups) > 0:
+                
+                #bpy.context.object.vertex_groups.active.name
+                #bpy.context.object.vertex_groups.active_index
+                
+                if groupExists(vg_active, props.vertex_groups) == False:
+                    
+                    group_new = props.vertex_groups.add()
+                    group_new.name = vg_active.name
+                    group_new.index = vg_active.index
+                    
+                    props.RD_ULIndex = len(props.vertex_groups)-1
+                    
+                    reportString = "Added: \"%s\" " % (group_new.name)
+                else:
+                    reportString = "Vertex Group: \"%s\" already added " % (vg_active.name)
+            
+        elif self.type == "REMOVE":
+            if len(props.vertex_groups) > 0:
+                props.vertex_groups.remove(props.RD_ULIndex )
+                
+                if props.RD_ULIndex >= len(props.vertex_groups):
+                    props.RD_ULIndex = len(props.vertex_groups)-1
+        #Resets default settings
+        #self.resetSelf()
+        self.resetSelf(self)
+        
+        print(reportString)
+        self.report({'INFO'}, reportString)
+        return {'FINISHED'}
+        
+class RIG_DEBUGGER_OT_VertexGroup_UIOps(bpy.types.Operator):
+    bl_idname = "rig_debugger.vertex_group_ui_ops"
+    bl_label = "Custom Vertex Group Operators"
+    bl_description = "To assist with debugging and development"
+    bl_options = {'UNDO',}
+    type: bpy.props.StringProperty(default="DEFAULT")
+    include: bpy.props.BoolProperty(default=False)
+    mirror: bpy.props.BoolProperty(default=False)
+    #sub: bpy.props.StringProperty(default="DEFAULT")
+    #index: bpy.props.IntProperty(default=0, min=0)
+    
+    #Resets default settings
+    #@classmethod
+    @staticmethod
+    def resetSelf(self):
+        self.type = "DEFAULT"
+        self.include = False
+        self.mirror = False
+        print("Reset States: %s, %d, %d" % (self.type, self.include, self.mirror) )
+        #return None
+    """
+    #This function will check to change/reset the previous mode of the object for operator to work
+    def previous_mode(prev_mode, context, before=True):
+        #sets string prev_mode
+        prev_mode = ob.mode
+        ob = context.object
+        
+        #This checks to see if this is before the operator starts or after to reset the previous object mode
+        if before == True:
+            if prev_mode != ob.mode:
+                #prev_mode = ob.mode
+                bpy.ops.object.mode_set(mode = 'OBJECT')
+        else:
+            if prev_mode == ob.mode:
+                #prev_mode = ob.mode
+                bpy.ops.object.mode_set(mode = prev_mode)
+            
+        return None#prev_mode """
+        
+    #def index_check(type):
+    def index_check(index, type, iterator=None):
+        if type == "ADD":
+            print("bruh")
+        if type == "REMOVE":
+            if len(iterator) > 0 and index > 0:
+                index-=1
+                #print("bruh")
+        return index
+    
+    @classmethod
+    def poll(cls, context):
+        #scene = bpy.context.scene
+        #props = scene.IM_Props
+        #The wanted object types
+        ob_types = ["MESH"]
+        
+        #if wanted object type is inside ob_types
+        return context.object.type in ob_types
+    
+    def execute(self, context):
+        scene = bpy.context.scene
+        #context = bpy.context
+        data = context.object.data
+        props = scene.RD_Props
+        #print("" % () )
+        vg = bpy.context.object.vertex_groups
+        vg_active = vg.active
+        
+        reportString = "Done!"
+        
+        def groupExists(vg_active, groups):
+            #groups = props.vertex_groups
+            for i in groups:
+                if i.name == vg_active.name:
+                    return True
+                    
+            return False
+        
+        #Creates animation_data if there isn't none
+        if self.type == "ADD":
+            
+            if len(context.object.vertex_groups) > 0:
+                
+                #bpy.context.object.vertex_groups.active.name
+                #bpy.context.object.vertex_groups.active_index
+                
+                if groupExists(vg_active, props.vertex_groups) == False:
+                    
+                    group_new = props.vertex_groups.add()
+                    group_new.name = vg_active.name
+                    group_new.index = vg_active.index
+                    
+                    props.RD_ULIndex = len(props.vertex_groups)-1
+                    
+                    reportString = "Added: \"%s\" " % (group_new.name)
+                else:
+                    reportString = "Vertex Group: \"%s\" already added " % (vg_active.name)
+            
+        elif self.type == "REMOVE":
+            if len(props.vertex_groups) > 0:
+                props.vertex_groups.remove(props.RD_ULIndex )
+                
+                if props.RD_ULIndex >= len(props.vertex_groups):
+                    props.RD_ULIndex = len(props.vertex_groups)-1
+        #Resets default settings
+        #self.resetSelf()
+        self.resetSelf(self)
+        
+        print(reportString)
+        self.report({'INFO'}, reportString)
+        return {'FINISHED'}
 
 #Calculates ammounts of different attributes drivers have
 def calculateUIALL(string):
@@ -2000,7 +2246,73 @@ def calculateUIActive(string):
         pass
     
     return count """
+
+class RIG_DEBUGGER_WEIGHTGROUPS_UL_items(bpy.types.UIList):
     
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        scene = bpy.context.scene
+        data = bpy.data
+        props = scene.RD_Props
+        
+        #active = props.RIA_ULIndex
+        RDCollect = props.vertex_groups
+        
+        if self.layout_type in {'DEFAULT', 'COMPACT'}:
+            
+            row = layout.row(align=True)
+            
+            if len(RDCollect) > 0:
+                #print("Item: %s" % (str(item)))
+                row.label(text="", icon="BLANK1")
+                row.prop(item, "name", text="")
+                row.prop(item, "index", text="")
+                #obName
+                #obName = item.object.name if item.object != None else "Row"+str(index)
+                """
+                #obItems
+                if item.name != None:
+                    obItems = len(item.collection.objects)
+                else:
+                    obItems = 0
+                
+                info = '%d. (%d)' % (index+1, obItems)#, obName, obItems)
+                #bpy.context.scene.RD_Props.collections.add()
+                
+                #Displays icon of objects in list
+                if props.display_icons == True:
+                    
+                    if item.object != "EMPTY" and item.icon != "NONE":
+                        row.label(text="", icon=item.icon)
+                        
+                    else:
+                        #obIcon = objectIcon(item.object)
+                        row.label(text="", icon="QUESTION")
+                        
+                #Checks if the item has an object pointed
+                if item.object != None:
+                    row.prop(item.object, "name", text=info)
+                    
+                else:
+                    row.label(text=info+": [No Object]")
+                
+                if props.display_collections == True:
+                    if item.collection != None:
+                        row.prop(item.collection, "name", text="", icon="GROUP")
+                        
+                    else:
+                        row.label(text="[No Collection]")
+                """
+                    
+            else:
+                row.label(text="No Iterations Here")
+                
+        #Theres nothing in this layout_type since it isn't intended to be used.
+        elif self.layout_type in {'GRID'}:
+            layout.alignment = 'CENTER'
+
+    def invoke(self, context, event):
+        pass
+
 class RIG_DEBUGGER_PT_CustomPanel1(bpy.types.Panel):
     #A Custom Panel in Viewport
     bl_idname = "RIG_DEBUGGER_PT_CustomPanel1"
@@ -2251,7 +2563,52 @@ class RIG_DEBUGGER_PT_DriverInfo1(bpy.types.Panel):
             else:
                 row = col.row(align=True)
                 row.operator("rig_debugger.debug", icon="INFO", text="Create Animation_Data").type = "CREATE_ANIMATION_DATA"
-            
+                
+        col.separator()
+        
+        row = col.row(align=True)
+        row.label(text="Influence Vertex Groups Op:")
+        
+        row = col.row(align=True)
+        row.prop(props, "inclusion", expand=True)
+        
+        row = col.row(align=True)
+        row.prop(props, "vertex_group_weight", expand=True)
+        
+        row = col.row(align=True)
+        row.prop(props, "include_mirror_selection", expand=True)
+        
+        row = col.row(align=True)
+        row.label(text="Object Vertex Groups:")
+        
+        #Splitting for the template_list
+        split = layout.row(align=False)
+        col = split.column(align=True)
+        
+        row = col.row(align=True)
+        ob = context.object
+        row.template_list("MESH_UL_vgroups", "", ob, "vertex_groups", ob.vertex_groups, "active_index", rows=5)
+        
+        col = split.column(align=True)
+        
+        row = col.row(align=True)
+        button = row.operator("rig_debugger.vertex_group_ui_ops", text="", icon="ADD")
+        button.type = "ADD"
+        
+        #Splitting for the template_list
+        split = layout.row(align=False)
+        col = split.column(align=True)
+        
+        row = col.row(align=True)
+        row.template_list("RIG_DEBUGGER_WEIGHTGROUPS_UL_items", "custom_def_list", props, "vertex_groups", props, "RD_ULIndex", rows=3)
+        
+        #Side_Bar Operators
+        col = split.column(align=True)
+        
+        row = col.row(align=True)
+        button = row.operator("rig_debugger.vertex_group_ui_ops", text="", icon="X")
+        button.type = "REMOVE"
+        
         #End of CustomPanel
         
 class RIG_DEBUGGER_PT_DriverInfo2(bpy.types.Panel):
@@ -2405,6 +2762,12 @@ class RIG_DEBUGGER_PreferencesMenu(bpy.types.AddonPreferences):
             row.operator("wm.url_open", text="Twitter").url = "https://twitter.com/JohnGDDR5"
             row.operator("wm.url_open", text="Artstation").url = "https://www.artstation.com/johngddr5"
     
+
+    
+class RIG_DEBUGGER_WeightGroups(bpy.types.PropertyGroup):
+    name: bpy.props.StringProperty(name="", default="Name")
+    index: bpy.props.IntProperty(name="Int", description="", default= 0, min=0)
+    
 class RIG_DEBUGGER_Props(bpy.types.PropertyGroup):
     #Tries to set collection_parent's default to Master Collection
     override_existing_drivers: bpy.props.BoolProperty(name="Override Existing Drivers", description="Overrides the drivers of the existing flipped driver", default=False)
@@ -2422,15 +2785,26 @@ class RIG_DEBUGGER_Props(bpy.types.PropertyGroup):
     
     dropdown_debugger: bpy.props.BoolProperty(name="Dropdown", description="Show Props of active Driver", default=True)
     
-    collection_active: bpy.props.PointerProperty(name="Collection to add Collections for Object duplicates", type=bpy.types.Collection)
+    #collection_active: bpy.props.PointerProperty(name="Collection to add Collections for Object duplicates", type=bpy.types.Collection)
     
     #Booleans for locking default collection of parent
     
     lock_active: bpy.props.BoolProperty(name="Lock Collection of Active", description="When locked, you can now edit the name of the selected collection", default=False)
     
-    #collections: bpy.props.CollectionProperty(type=RIG_DEBUGGER_CollectionObjects)
+    #For rig_debugger.vertex_group_influence TOP
+    vertex_groups: bpy.props.CollectionProperty(type=RIG_DEBUGGER_WeightGroups)
     
-    IM_ULIndex: bpy.props.IntProperty(name="List Index", description="UI List Index", default= 0, min=0)
+    RD_ULIndex: bpy.props.IntProperty(name="List Index", description="UI List Index", default= 0, min=0)
+    
+    inclusion_desc = ("Bruh Moment", "OOOOOOOF")
+    
+    inclusion: bpy.props.EnumProperty(name="Inclusion Type", items= [("EXCLUDE", "Exclude", inclusion_desc[0]), ("INCLUDE", "Include", inclusion_desc[1])], description="Inclusion mode of influencing Vertex Groups", default="EXCLUDE")
+    
+    vertex_group_weight: bpy.props.FloatProperty(name="Vertex Group Weight", description="To set the weight", default= 0.0, min=0.0, max=1.0)
+    
+    include_mirror_selection: bpy.props.BoolProperty(name="Include Mirrored Vertices", description="Also Mirror the selection of the Weights", default=False)
+    
+    #For rig_debugger.vertex_group_influence BOTTOM
     
     clean_leave: bpy.props.IntProperty(name="List Index", description="Ammount of recent Objects to leave when cleaning.", default=2, min=0)
     
@@ -2462,25 +2836,32 @@ class RIG_DEBUGGER_Props(bpy.types.PropertyGroup):
     
 #Classes that are registered
 classes = (
+    RIG_DEBUGGER_WeightGroups,
+    RIG_DEBUGGER_Props,
     
     RIG_DEBUGGER_OT_Debugging,
     RIG_DEBUGGER_OT_DriverMirror,
     RIG_DEBUGGER_OT_DriverOps,
+    RIG_DEBUGGER_OT_VertexGroupOps,
     RIG_DEBUGGER_OT_DriverExtrapolation,
     
     RIG_DEBUGGER_OT_BoneOps,
     #RIG_DEBUGGER_OT_UIOperators,
+    RIG_DEBUGGER_OT_VertexGroup_Ops,
+    RIG_DEBUGGER_OT_VertexGroup_UIOps,
     
-    RIG_DEBUGGER_UL_items,
+    #RIG_DEBUGGER_UL_items,
     
+    RIG_DEBUGGER_WEIGHTGROUPS_UL_items,
     RIG_DEBUGGER_PT_CustomPanel1,
     RIG_DEBUGGER_PT_CustomPanel2,
     RIG_DEBUGGER_PT_DriverInfo1,
     RIG_DEBUGGER_PT_DriverInfo2,
     
     RIG_DEBUGGER_PreferencesMenu,
+    
     #RIG_DEBUGGER_CollectionObjects,
-    RIG_DEBUGGER_Props,
+    #RIG_DEBUGGER_Props,
 )
 
 def register():

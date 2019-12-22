@@ -171,7 +171,7 @@ bpy.context.preferences.addons[0]
 #returns the activated Addons the User has
 
 
-#This is for adding an Operator that creates empty Vertex Groups to an Object's Data based on the names of the Armature's bones that are selected
+###Notes for adding an Operator that creates empty Vertex Groups to an Object's Data based on the names of the Armature's bones that are selected
 
 bpy.context.object.vertex_groups.get("Spine") is not None
 #Returns Boolean
@@ -179,12 +179,6 @@ bpy.context.object.vertex_groups.get("Spine") is not None
 
 bpy.context.active_pose_bone
 #Returns bpy.data.objects['Armature.1'].pose.bones["IK.Hoof.Back.R"]
-
-bpy.context.object
-#Returns bpy.data.objects['Body.1']
-
-bpy.context.active_object
-#Returns bpy.data.objects['Body.1']
 
 bpy.context.selected_objects
 #Returns [bpy.data.objects['Body.1'], bpy.data.objects['Armature.1']]
@@ -195,5 +189,60 @@ bpy.context.selected_pose_bones
 bpy.context.selected_pose_bones_from_active_object
 #Returns [bpy.data.objects['Armature.1'].pose.bones["IK.Hoof.Back.R"]]
 
-bpy.context.object.modifiers[0]
-#Able to access the modifiers
+
+###Notes for Vertex Mode Brushes, in order to create some kind of operator panel Pi-menu to select brushes faster
+
+bpy.data.brushes['Subtract.Zero'].weight_tool
+#Returns 'DRAW'
+
+bpy.context.tool_settings
+#Returns bpy.data.scenes['Scene'].tool_settings
+
+bpy.context.tool_settings.weight_paint.brush
+#Returns bpy.data.brushes['Subtract']
+#Note: This one returns the selected Brush
+
+###Notes for Groups Weight Assign operator
+
+bpy.ops.object.mode_set(mode = 'OBJECT')
+#Changes mode of object
+
+bpy.context.object.vertex_groups.active.name
+#Returns name of active Vertex Group of Object: 'Hips'
+
+bpy.context.object.vertex_groups.active.index
+#Returns the index
+
+bpy.context.object.vertex_groups.active_index
+#Returns index of active Vertex Group of Object
+
+bpy.context.object.vertex_groups[4].name
+#Returns 'Ear.2.R'
+
+
+bpy.context.object.vertex_groups['Thigh.L']
+
+bpy.context.object.vertex_groups['Thigh.L'].index
+#Returns the index of the vertex group
+
+bpy.context.object.vertex_groups[4].index
+#Returns 4, which is the index of the vertex group
+
+len(bpy.context.object.data.vertices[0].groups)
+#Returns how many vertex groups a vertice is influenced by
+
+
+bpy.context.object.data.vertices[0].groups[4].group
+#Returns the index of one of the vertex groups that influences this vertex
+
+bpy.context.object.vertex_groups[35].weight(0)
+#Returns 0.00933530181646347
+#Note: This returns the weight of the vertice of index 0, however it will result in a Runtime Error if the vertex isn't in the vertex_group
+
+bpy.context.object.vertex_groups[4].remove(0)
+#Will remove a vertex in the vertex_group
+
+#bpy.context.object.vertex_groups[4].add(index, weight, type)
+bpy.context.object.vertex_groups[4].add(0, 1.0, 'REPLACE')
+#Adds a vertex to the group with a weight value
+#Notes: type option can be 'REPLACE', 'ADD', 'SUBTRACT'
