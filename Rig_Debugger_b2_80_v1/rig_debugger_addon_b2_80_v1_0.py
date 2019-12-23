@@ -1957,7 +1957,7 @@ class RIG_DEBUGGER_OT_VertexGroup_Ops(bpy.types.Operator):
     
     #Resets default settings
     #@classmethod
-    @staticmethod
+    #@staticmethod
     def resetSelf(self):
         self.type = "DEFAULT"
         self.include = False
@@ -1966,21 +1966,56 @@ class RIG_DEBUGGER_OT_VertexGroup_Ops(bpy.types.Operator):
         #return None
     
     #This function will check to change/reset the previous mode of the object for operator to work
-    def previous_mode(prev_mode, context, before=True):
+    def previous_mode(self, prev_mode, object, before=True):
         #sets string prev_mode
-        prev_mode = ob.mode
-        ob = context.object
+        #ob = context.object
+        print("prev_mode1: %s" % (prev_mode) )
+        ob = object
+        #prev_mode = ob.mode
+        mode_to_set = 'OBJECT'
         
         #This checks to see if this is before the operator starts or after to reset the previous object mode
         if before == True:
-            if prev_mode != ob.mode:
+            if prev_mode != mode_to_set:
                 #prev_mode = ob.mode
-                bpy.ops.object.mode_set(mode = 'OBJECT')
+                bpy.ops.object.mode_set(mode = mode_to_set)
+                debug = "Changed Mode 2 \"%s\" to \"%s\" " % (prev_mode, mode_to_set)
+            else:
+                debug = "previous_mode() 2 nothing happened"
         else:
-            if prev_mode == ob.mode:
+            if prev_mode != mode_to_set:
                 #prev_mode = ob.mode
                 bpy.ops.object.mode_set(mode = prev_mode)
-            
+                debug = "Changed Mode 3 \"%s\" to \"%s\" " % (mode_to_set, prev_mode)
+            else:
+                debug = "previous_mode() 3 nothing happened"
+        
+        print(debug)
+        #print("prev_mode4: %s" % (ob.mode) )
+        return None#prev_mode
+        
+    
+    #Goes to EDIT mode for .select_mirror() poll context, to select the mirror vertices of Mesh Object
+    def selectMirror(self, prev_mode, object):
+        #sets string prev_mode
+        #ob = context.object
+        print("prev_mode1: %s" % (prev_mode) )
+        ob = object
+        #prev_mode = ob.mode
+        mode_to_set = 'EDIT'
+        
+        #This checks to see if this is before the operator starts or after to reset the previous object mode
+        if prev_mode != mode_to_set:
+            #prev_mode = ob.mode
+            bpy.ops.object.mode_set(mode = mode_to_set)
+            debug = "Changed Mode 2 \"%s\" to \"%s\" " % (prev_mode, mode_to_set)
+            #Selects the mirror vertices of Mesh
+            bpy.ops.mesh.select_mirror(axis={'X'}, extend=True)
+        else:
+            debug = "previous_mode() 2 nothing happened"
+        
+        print(debug)
+        #print("prev_mode4: %s" % (ob.mode) )
         return None#prev_mode
         
     #def index_check(type):
@@ -2006,6 +2041,8 @@ class RIG_DEBUGGER_OT_VertexGroup_Ops(bpy.types.Operator):
     def execute(self, context):
         scene = bpy.context.scene
         #context = bpy.context
+        ob = context.object
+        #context = bpy.context
         data = context.object.data
         props = scene.RD_Props
         #print("" % () )
@@ -2014,25 +2051,128 @@ class RIG_DEBUGGER_OT_VertexGroup_Ops(bpy.types.Operator):
         
         reportString = "Done!"
         
-        def groupExists(vg_active, groups):
+        #Function is only needed here, so no reason to have it out. If you do, add "self" parameter to beginning
+        #Checks if vertex_group name was already added to props.vertex_groups
+        def groupExists(vertex_group_active, groups):
             #groups = props.vertex_groups
             for i in groups:
-                if i.name == vg_active.name:
+                if i.name == vertex_group_active.name:
                     return True
                     
             return False
         
+        #Gets all selected vertices of object and returns list of vertex indexes
+        def getSelectedVertices(mesh_object):
+            ob = mesh_object
+            verts = []
+            
+            for i in ob.data.vertices:
+                if i.select == True:
+                    verts.append(i.index)
+                    
+            return verts
+            
+        #Gets list of Vertex Groups indexes from props.vertex_groups
+        def getVerGpsProps(propGroup, object):
+            ob = object
+            vertex_group_index_list = []
+            
+            for i in propGroup:
+                #Checks if name is in vertex_groups
+                if i.name in ob.vertex_groups:
+                    #Checks if it isn't a duplicate
+                    if ob.vertex_groups[i.name].index not in vertex_group_index_list:
+                        vertex_group_index_list.append(i.index)
+                    
+            return vertex_group_index_list
+            
+        #Creates a dictionary of Vertex Group indexes, to use for Statistical purposes
+        def createVerGpsDictStats(vertex_group_index_list):
+            dict = {}
+            
+            for i in vertex_group_index_list:
+                dict[i] = {}
+                #For the number of vertices in the Vertex Group
+                dict[i]["verts"] = 0
+                    
+            return dict
+            
+        #Creates a list of Vertex Group indexes that are still needed for Vertex
+        def createVerGpsNeeded(groups_in, vg_props):
+            #groups_in, an incomplete index list of Vertex Groups of vertex already from vg_props
+            #vg_props, complete index list of Vertex Groups from vg_props
+            groups_need = vg_props[::]
+            
+            for m in groups_in:
+                if m in groups_need:
+                    groups_need.remove(m)
+                    
+            return groups_need
+            
+        
         #Creates animation_data if there isn't none
         if self.type == "FROM_SELECTION":
+            #previous mode
+            prev_mode = context.object.mode
+            #print("prev_mode1: %s" % (prev_mode) )
+            #Either EXCLUDE or INCLUDE
+            inclusion = props.inclusion
+            vg_weight = props.vertex_group_weight
+            select_mirror = props.include_mirror_selection
             
-            previous_mode = context.object.mode
+            if select_mirror:
+                self.selectMirror(prev_mode, ob)
             
+            #previous_mode(self, prev_mode, context, before=True)
+            self.previous_mode(prev_mode, ob, before=True)
             
+            verts = getSelectedVertices(ob)
             
+            #index list of props.vertex_groups to compare to object vertex_groups
+            vg_props = getVerGpsProps(props.vertex_groups, ob)
+            
+            #dictionary used for statsistics of Vertex Groups and Vertices affected
+            vg_stats = createVerGpsDictStats(vg_props)
+            
+            #If the object has at least 1 vertex group
             if len(context.object.vertex_groups) > 0:
                 
+                if inclusion == "INCLUDE":
+                    if len(vg_props) > 0:
+                        #Every selected vertex
+                        for i in verts:
+                            if len(ob.data.vertices[i].groups) > 0:
+                                
+                                groups_in = []
+                                #Need to find a better solution that having this as a list
+                                bruh = [i]
+                                
+                                #For every Vertex Group of Vertex
+                                for j in ob.data.vertices[i].groups:
+                                    if j.group in vg_props:
+                                        vg_stats[j.group]["verts"] += 1
+                                        
+                                        groups_in.append(j.group)
+                                        #ob.data.vertices[i]
+                                        print("Vertex: %d" % (i) )
+                                        #ob.vertex_groups[j.group].add(i, vg_weight, 'REPLACE')
+                                        #bruh = [i]
+                                        ob.vertex_groups[j.group].add(bruh, vg_weight, 'REPLACE')
+                                #"""
+                                #list of Vertex Groups the Vertex isn't part of
+                                groups_need = createVerGpsNeeded(groups_in, vg_props)
+                                
+                                #Adds Vertex Groups the Vertex still needs to apply a weight value
+                                for m in groups_need:
+                                    vg_new = ob.vertex_groups.new(name=ob.vertex_groups[m].name)
+                                    vg_new.add(bruh, vg_weight, 'REPLACE')
+                        
+                    else:
+                        reportString = "INCLUDE: 0 Vertex Groups"
                 #bpy.context.object.vertex_groups.active.name
                 #bpy.context.object.vertex_groups.active_index
+                
+                """
                 
                 if groupExists(vg_active, props.vertex_groups) == False:
                     
@@ -2045,16 +2185,24 @@ class RIG_DEBUGGER_OT_VertexGroup_Ops(bpy.types.Operator):
                     reportString = "Added: \"%s\" " % (group_new.name)
                 else:
                     reportString = "Vertex Group: \"%s\" already added " % (vg_active.name)
+                    """
+                self.previous_mode(prev_mode, ob, before=False)
+                
+            else:
+                reportString = "Object \"%s\" has no Vertex Groups" % (ob.name)
             
+        """
         elif self.type == "REMOVE":
             if len(props.vertex_groups) > 0:
                 props.vertex_groups.remove(props.RD_ULIndex )
                 
                 if props.RD_ULIndex >= len(props.vertex_groups):
                     props.RD_ULIndex = len(props.vertex_groups)-1
+        #"""
         #Resets default settings
         #self.resetSelf()
-        self.resetSelf(self)
+        #self.resetSelf(self)
+        self.resetSelf()
         
         print(reportString)
         self.report({'INFO'}, reportString)
@@ -2080,6 +2228,12 @@ class RIG_DEBUGGER_OT_VertexGroup_UIOps(bpy.types.Operator):
         self.mirror = False
         print("Reset States: %s, %d, %d" % (self.type, self.include, self.mirror) )
         #return None
+        
+    def __init__(self):
+        print("Start")
+
+    def __del__(self):
+        print("End")
     """
     #This function will check to change/reset the previous mode of the object for operator to work
     def previous_mode(prev_mode, context, before=True):
@@ -2570,6 +2724,12 @@ class RIG_DEBUGGER_PT_DriverInfo1(bpy.types.Panel):
         row.label(text="Influence Vertex Groups Op:")
         
         row = col.row(align=True)
+        button = row.operator("rig_debugger.vertex_group_ops", text="From Selection", icon="RESTRICT_SELECT_OFF")
+        button.type = "FROM_SELECTION"
+        
+        col.separator()
+        
+        row = col.row(align=True)
         row.prop(props, "inclusion", expand=True)
         
         row = col.row(align=True)
@@ -2666,67 +2826,7 @@ class RIG_DEBUGGER_PT_DriverInfo2(bpy.types.Panel):
                 row.operator("rig_debugger.debug", icon="INFO", text="Create Animation_Data").type = "CREATE_ANIMATION_DATA"
             
         #End of CustomPanel
-        
-def ListOrderUpdate(self, context):
-    scene = bpy.context.scene
-    data = bpy.data
-    props = scene.RD_Props
-    #list_order "DUPLICATES" "RECENT" "CUSTOM"
-    #list_reverse: "DESCENDING" "ASCENDING"
-    
-    reverseBool = False
-    if props.list_reverse == "ASCENDING":
-        reverseBool = True
-        
-    #Updates the UI List selected index when ListOrderUpdate is called
-    props.IM_ULIndex = len(props.collections)-props.IM_ULIndex-1
-        
-    # "a" parameter would be an object with methods
-    def returnOrder(a):
-        #Returns len() of objects in collection, else return 0
-        if props.list_order == "DUPLICATES":
-            
-            return len(a.collection.objects) if a.collection != None else 0
-            
-        #Returns the integer value of the order the objects were created
-        if props.list_order == "RECENT":
-            return a.recent
-            
-        #Returns custom value order made by user in the UI List
-        if props.list_order == "CUSTOM":
-            return a.custom
-        
-    #This is where sorting is done
-    #sort = sorted(props.collections, key=lambda a: a.duplicates, reverse=reverseBool)
-    sort = sorted(props.collections, key=returnOrder, reverse=reverseBool)
-    
-    nameList = []
-    
-    #For loop appends the names of objects in props.collections.objects into nameList
-    for i in enumerate(sort):
-        if i[1].object is not None:
-            nameList.append(i[1].object.name)
-        else:
-            print("Collection: %s missing object" % (i[1].name))
-            #This section calculates the index of props.collection even when they are being removed in order to remove them
-            newIndex = None
-            for j in enumerate(props.collections):
-                if i[1] == j[1]:
-                    newIndex = j[0]
-            props.collections.remove(newIndex)
-    
-    #For loop uses object names in nameList to move props.collections
-    for i in enumerate(nameList):
-        colLocation = 0
-        #Loops through props.collections to see if their names matches the names of object names in nameList
-        for j in enumerate(props.collections):
-            #if j[1].name == i[1]:
-            if j[1].object.name == i[1]:
-                colLocation = j[0]
-                break
-        props.collections.move(colLocation, i[0])
-    
-    return
+
     
 class RIG_DEBUGGER_PreferencesMenu(bpy.types.AddonPreferences):
     bl_idname = "rig_debugger_addon_b2_80_v1_0"
@@ -2806,26 +2906,7 @@ class RIG_DEBUGGER_Props(bpy.types.PropertyGroup):
     
     #For rig_debugger.vertex_group_influence BOTTOM
     
-    clean_leave: bpy.props.IntProperty(name="List Index", description="Ammount of recent Objects to leave when cleaning.", default=2, min=0)
     
-    
-    
-    group_name_use: bpy.props.BoolProperty(name="Use Object Name for New Collection", description="Use the Object\'s name for the New Collection when creating a new Iteration Object", default=True)
-    
-    group_name: bpy.props.StringProperty(name="New Collection Name", description="Name used when creating a new collection for Active", default="Group")
-    
-    listDesc =  ["Displays List in order of how many duplicates each object has", "Displays List in the order they were created", "Displays List in order user specified"]
-    listDesc2 =  ["List displays in Descending Order", "List displays in Ascending Order"]
-    
-    list_order: bpy.props.EnumProperty(name="Display Mode", items= [("DUPLICATES", "Duplicates", listDesc[0], "DUPLICATE", 0), ("RECENT", "Recent", listDesc[1], "SORTTIME", 1), ("CUSTOM", "Custom", listDesc[2], "ARROW_LEFTRIGHT", 2)], description="Display Mode of List", default="DUPLICATES", update=ListOrderUpdate)
-    
-    list_reverse: bpy.props.EnumProperty(name="Display Mode", items= [("DESCENDING", "Descending", listDesc2[0], "SORT_DESC", 0), ("ASCENDING", "Ascending", listDesc2[1], "SORT_ASC", 1)], description="Display Mode of List", default="DESCENDING", update=ListOrderUpdate)
-    
-    display_collections: bpy.props.BoolProperty(name="Display Collections in List", description="Iterate Object Collections where duplicates are sent.", default=True)
-    
-    display_icons: bpy.props.BoolProperty(name="Display Icons", description="Display icons of objects in the list", default=True)
-    
-    index_to_new: bpy.props.BoolProperty(name="Updates Active List Index to New Iteration Object", description="Sets Active list index to New Iteration Object that was added.", default=True)
     
     debug_mode: bpy.props.BoolProperty(name="Display Debug Operators", description="To aid in Debugging Operators. Displayed in \"Display Settings\"", default=True)
     

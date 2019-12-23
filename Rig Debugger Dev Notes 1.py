@@ -190,7 +190,7 @@ bpy.context.selected_pose_bones_from_active_object
 #Returns [bpy.data.objects['Armature.1'].pose.bones["IK.Hoof.Back.R"]]
 
 
-###Notes for Vertex Mode Brushes, in order to create some kind of operator panel Pi-menu to select brushes faster
+##Notes for Vertex Mode Brushes, in order to create some kind of operator panel Pi-menu to select brushes faster
 
 bpy.data.brushes['Subtract.Zero'].weight_tool
 #Returns 'DRAW'
@@ -204,26 +204,26 @@ bpy.context.tool_settings.weight_paint.brush
 
 ###Notes for Groups Weight Assign operator
 
-bpy.ops.object.mode_set(mode = 'OBJECT')
-#Changes mode of object
-
 bpy.context.object.vertex_groups.active.name
 #Returns name of active Vertex Group of Object: 'Hips'
 
-bpy.context.object.vertex_groups.active.index
-#Returns the index
-
 bpy.context.object.vertex_groups.active_index
 #Returns index of active Vertex Group of Object
-
-bpy.context.object.vertex_groups[4].name
-#Returns 'Ear.2.R'
 
 
 bpy.context.object.vertex_groups['Thigh.L']
 
 bpy.context.object.vertex_groups['Thigh.L'].index
 #Returns the index of the vertex group
+
+bpy.context.object.vertex_groups.new(name="")
+#Creates new Vertex Group
+
+bpy.context.object.vertex_groups[4].name
+#Returns 'Ear.2.R'
+
+bpy.context.object.data.vertices[0].select
+#Returns Boolean, True or False
 
 bpy.context.object.vertex_groups[4].index
 #Returns 4, which is the index of the vertex group
@@ -235,9 +235,13 @@ len(bpy.context.object.data.vertices[0].groups)
 bpy.context.object.data.vertices[0].groups[4].group
 #Returns the index of one of the vertex groups that influences this vertex
 
+bpy.context.object.data.vertices[0].groups[0].weight
+#Returns Float, ex. 0.5394619703292847 of Vertex in Group
+
 bpy.context.object.vertex_groups[35].weight(0)
 #Returns 0.00933530181646347
 #Note: This returns the weight of the vertice of index 0, however it will result in a Runtime Error if the vertex isn't in the vertex_group
+#Note 2: This value seems to not update after changing it from .data, so use the values from .data instead
 
 bpy.context.object.vertex_groups[4].remove(0)
 #Will remove a vertex in the vertex_group
@@ -246,3 +250,13 @@ bpy.context.object.vertex_groups[4].remove(0)
 bpy.context.object.vertex_groups[4].add(0, 1.0, 'REPLACE')
 #Adds a vertex to the group with a weight value
 #Notes: type option can be 'REPLACE', 'ADD', 'SUBTRACT'
+
+
+###Python Notes from the Addon
+
+bpy.types.RIG_DEBUGGER_OT_vertex_group_ops.resetSelf()
+#resetSelf() is a custom function I made in the operator, this is how you access it.
+
+self.resetSelf(self)
+#In a class, the first argument in a function is always self, even if you rename it something else, like "cls", it is still self. This self.resetSelf(self) results in an error, as you don't need to state "self" inside a class function as it is inferred
+#Use, self.resetSelf()
