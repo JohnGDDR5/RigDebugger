@@ -2079,7 +2079,7 @@ class RIG_DEBUGGER_OT_VertexGroup_Ops(bpy.types.Operator):
             
             for i in propGroup:
                 #Checks if name is in vertex_groups
-                if i.name in ob.vertex_groups:
+                if i.name in ob.vertex_groups and i.use == True:
                     #Checks if it isn't a duplicate
                     if ob.vertex_groups[i.name].index not in vertex_group_index_list:
                         vertex_group_index_list.append(i.index)
@@ -2407,8 +2407,8 @@ class RIG_DEBUGGER_WEIGHTGROUPS_UL_items(bpy.types.UIList):
                     
                 row.label(text="", icon=usedIcon)
                 row.prop(item, "use", text="")
-                row.prop(item, "name", text="")
-                row.prop(item, "index", text="")
+                row.prop(item, "name", text="", emboss=False)
+                #row.prop(item, "index", text="")
                     
             else:
                 row.label(text="No Iterations Here")
