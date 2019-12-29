@@ -32,7 +32,7 @@ bl_info = {
     "category": "Scene"
 }
 
-import bpy
+import bpy, re
         
 from bpy.props import *
 #from math import pi, radians
@@ -83,184 +83,126 @@ def objectIcon(object):
                 
     return icon
 
-#Checks if a string has ".L, .R, .left, .right" to see if its flippable
+#Will return match object or None if string wasn't found
+def getDirectionRegEx(string):
+    pattern = '(?<=[ \.\-_])[rRlL]((?=$|[ \.\-_])|(?i)(ight|eft))'
+    
+    #print("pattern: %s" % (pattern) )
+    rawString = r'%s' % (pattern)
+    
+    #print("rawString: %s" % (rawString) )
+    
+    #compiled RegEx object
+    regex = re.compile(rawString)
+    
+    match = regex.search(string)
+    
+    return match
+    
 def getDirection(string, flip=False):
+    #print("getDirection(): %s" % (string) )
     
-    case_low = string.lower()
+    match = getDirectionRegEx(string)
     
-    sides = (".l", ".r", ".left", ".right")
-    # -1 to check if it changed, since .rfind() returns -1 if not found, 
-    side = -1
-    #side_new is the new flipped side index to use for sides[]
-    side_new = 0
-    
-    #index is the index .rfind() found the last occurance in the String
-    #index = 0
-    
-    #Only needs to use ".l" and ".r"
-    for j in enumerate(sides[0:2]):
-        rfound = case_low.rfind( sides[j[0]] )
+    if match is not None:
+        matchString = match.group(0)
+        sides = ("left", "right")
+        #stringNew = string
+        stringNew = matchString
         
-        #if "L" / "R" is between two "." ex. ".L.001"
-        between_dots = case_low.find(".", rfound+1)
-        
-        if rfound > -1:
-            #print("rfound: %d" % (rfound))
-            if j[1] == ".l":
-                if case_low.rfind( ".left", rfound ) > -1:
-                    #if last character is "left" or "right", or "left" / "right" is between two "." ex. ".left.001"
-                    if rfound + 4 == len(case_low)-1 or between_dots == rfound + 5:
-                        side = 2
-                        #index = rfound
-                        break
-                #if last character is "L" or "R", or "L" / "R" is between two "." ex. ".L.001"
-                elif rfound + 1 == len(case_low)-1 or between_dots == rfound + 2:
-                    side = 0
-                    #index = rfound
-                    #print("rfound + 1: %d" % (rfound + 1) )
-                    #print("len(case_low)-1: %d" % (len(case_low)-1) )
-                    break
-                else:
-                    break
-            elif j[1] == ".r":
-                #if (rfound+1) == len(string)-1:   
-                if case_low.rfind( ".right", rfound ) > -1:
-                    #if last character is "left" or "right", or "left" / "right" is between two "." ex. ".right.001"
-                    if rfound + 5 == len(case_low)-1 or between_dots == rfound + 6:
-                        side = 3
-                        #index = rfound
-                        break
-                #elif rfound + 1 == len(case_low)-1:
-                #if last character is "L" or "R", or "L" / "R" is between two "." ex. ".R.001"
-                elif (rfound + 1 == len(case_low)-1 ) or between_dots == rfound + 2:
-                    side = 1
-                    #index = rfound
-                    break
-                else:
-                    break
+        #checks if its left or right
+        if matchString[0].lower() == "l":
+            stringNew = sides[0]
+        elif matchString[0].lower() == "r":
+            stringNew = sides[1]
+        #Just incase of an Error
         else:
-            pass
-    
-    #returns the side to flip
-    if side > -1:
-        #Switches the side index to the flipped one, if it is told to do so
+            return ""
+        
+        #flips the name
         if flip == True:
-            if side == 0:
-                #case_flip = ".r"
-                side = 1
-            elif side == 1:
-                #case_flip = ".l"
-                side = 0
-            elif side == 2:
-                side = 3
-            elif side == 3:
-                side = 2
+            if stringNew == "left":
+                stringNew = sides[1]
+            else:
+                stringNew = sides[0]
                 
-        #Removes the "." from the beginning
-        return sides[side][1:]
+        if len(matchString) == 1:
+            stringNew = stringNew[0]
+                
+        print("getDirection(): %s, %s" % (matchString, stringNew) )
+        return stringNew
     else:
+        print("getDirection(): Match Fail for %s" % (string) )
         return ""
 
-#Flip names of string with, (".l", ".r", ".left", ".right") upper or lower case.
-# the print() functions are commented, uncomment them for debugging.
-def flipNames(string):
+def sideCase(string, flip=False):
     
-    case_low = string.lower()
+    sides = ("left", "right")
+    stringNew = string
     
-    #sides = (".l", ".r")
-    #sides = (".l", ".L", ".r", ".R", ".left", ".right", ".Left", ".Right")
-    sides = (".l", ".r", ".left", ".right")
-    # -1 to check if it changed, since .rfind() returns -1 if not found, 
-    side = -1
-    #side_new is the new flipped side index to use for sides[]
-    side_new = 0
-    
-    #index is the index .rfind() found the last occurance in the String
-    index = 0
-    
-    #Only needs to use ".l" and ".r"
-    for j in enumerate(sides[0:2]):
-        rfound = case_low.rfind( sides[j[0]] )
-        
-        #if "L" / "R" is between two "." ex. ".L.001"
-        between_dots = case_low.find(".", rfound+1)
-        
-        if rfound > -1:
-            #print("rfound: %d" % (rfound))
-            if j[1] == ".l":
-                if case_low.rfind( ".left", rfound ) > -1:
-                    #if last character is "left" or "right", or "left" / "right" is between two "." ex. ".left.001"
-                    if rfound + 4 == len(case_low)-1 or between_dots == rfound + 5:
-                        side = 2
-                        index = rfound
-                        break
-                #if last character is "L" or "R", or "L" / "R" is between two "." ex. ".L.001"
-                elif rfound + 1 == len(case_low)-1 or between_dots == rfound + 2:
-                    side = 0
-                    index = rfound
-                    #print("rfound + 1: %d" % (rfound + 1) )
-                    #print("len(case_low)-1: %d" % (len(case_low)-1) )
-                    break
-                else:
-                    break
-            elif j[1] == ".r":
-                #if (rfound+1) == len(string)-1:   
-                if case_low.rfind( ".right", rfound ) > -1:
-                    #if last character is "left" or "right", or "left" / "right" is between two "." ex. ".right.001"
-                    if rfound + 5 == len(case_low)-1 or between_dots == rfound + 6:
-                        side = 3
-                        index = rfound
-                        break
-                #elif rfound + 1 == len(case_low)-1:
-                #if last character is "L" or "R", or "L" / "R" is between two "." ex. ".R.001"
-                elif (rfound + 1 == len(case_low)-1 ) or between_dots == rfound + 2:
-                    side = 1
-                    index = rfound
-                    break
-                else:
-                    break
+    #flips the name
+    if flip == True:
+        if string[0].lower() == "l":
+            stringNew = sides[1]
+        elif string[0].lower() == "r":
+            stringNew = sides[0]
+        #Just incase of an Error
         else:
+            return None
+    #print("String 2: %s, %s" % (string, stringNew))
+    if len(string) > 1:
+        #Checks if 1st and 2nd character are uppercase or lower
+        cases = (string[0].isupper(), string[1].isupper() )
+        
+        #if 1st character is lowercase, make the string lowercase
+        if cases[0] == False:
+            #string.lower()
             pass
-    
-    #Switches the side index to the flipped one
-    if side > -1:
-        if side == 0:
-            #case_flip = ".r"
-            side_new = 1
-        elif side == 1:
-            #case_flip = ".l"
-            side_new = 0
-        elif side == 2:
-            side_new = 3
-        elif side == 3:
-            side_new = 2
-            
-        #replace = sides[side_new]
-            
-        #if the "l" or "r" for original string is uppercase, uppercase the letter in "replace" variable
-        if string[index+1].isupper():
-            
-            #
-            replace = "." + sides[side_new][1:].capitalize()
-            #replace = sides[side_new].capitalize()
-            #replace[1].capitalize()
-            #replace[1] = replace[1].capitalize()
-           
-            
         else:
-            #The new flipped side
-            replace = sides[side_new]
-        #Uncomment for debug stuff    
-        #print("replace: %s; string: %s" % (str(replace), string) )
-            
-        # adds text before, then the replace, and then any text that was after the .l or .r
-        string = string[:index] + replace + string[index+len(sides[side]):]
+            #If 1st is uppercase and 2nd is lowercase, make rest of string lowercase
+            if cases[1] == False:
+                stringNew = stringNew[0].upper() + stringNew[1:]
+            #If 1st and 2nd character are uppercase, make all uppercase
+            else:
+                stringNew.upper()
+                
+        return stringNew
+    else:
+        case = string[0].isupper()
+        #Makes string only one character long
+        stringNew = stringNew[0]
         
-        #Removes the "." from the beginning
-        #return string[1:]
+        #If 1st character is uppercase
+        if case == True:
+            stringNew = stringNew.upper()
+            #print("BRUH: %s" % (stringNew) )
+            
+        return stringNew
+        
+#Takes in a string to check if it is flipabble, and an optional object, to change the name of the object if it is wrong.
+def flipNames(string, object = None):
+    #print("flipNames(): %s" % (string) )
+    
+    match = getDirectionRegEx(string)
+    
+    if match is not None:
+        matchString = match.group(0)
+        #Span is the (matchString.start(0), matchString.end(0)) tuple
+        span = match.span(0)
+        start = match.start(0)
+        end = match.end(0)
+        #print("Span: %s" % (str(span)) )
+        matchFlipped = sideCase(matchString, flip=True)
+        
+        #string = string[:index] + replace + string[index+len(sides[side]):]
+        string = string[:start] + matchFlipped + string[start+len(matchFlipped):]
+        
+        #print("Span: %s; matchFlipped: %s; String: %s" % (str(span), matchFlipped, string) ) 
+        
         return string
     else:
-        return ""
+        return None
+        
         
 class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
     bl_idname = "rig_debugger.debug"
@@ -269,6 +211,11 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
     bl_options = {'UNDO',}
     type: bpy.props.StringProperty(default="DEFAULT")
     #index: bpy.props.IntProperty(default=0, min=0)
+    
+    def endReport(self, reportString):
+        print(reportString + "\n")
+        self.report({'INFO'}, reportString)
+        return {'FINISHED'}
     
     def execute(self, context):
         scene = bpy.context.scene
@@ -286,8 +233,8 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                 ob.animation_data_create()
                 #opposite is .animation_data_clear()
                 
-        #Fake "Deletes" Iterate Objects without an Object or Collection pointer
-        elif self.type == "PRINT_ALL":
+        #Prints the UI info of all drivers, such as 
+        elif self.type == "PRINT_ALL_DRIVER_UI_INFO":
             
             anim_data = bpy.context.object.animation_data
             direction = ("X", "Y", "Z")
@@ -319,13 +266,30 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                 print(reportString)
                 self.report({'INFO'}, reportString)
                 
-        elif self.type == "PRINT_ADD_DRIVER_TEST":
+        #Prints Active Bone Info: Direction and flippedName
+        elif self.type == "PRINT_ACTIVE_BONE_FLIPPED":
+            bone_active = bpy.context.active_pose_bone
+            #If there is an active pose bone
+            if bone_active != None:
+                bone_active_direction = getDirection(bone_active.name)
+                
+                #Checks if active bone's name can be flipped
+                if bone_active_direction != "":
+                    flippedName = flipNames(bone_active.name)
+                    
+                    reportString = "Active Bone Name: \'%s\' to \'%s\', direction: \'%s\' " % (bone_active.name, flippedName, bone_active_direction)
+                else:
+                    reportString = "Active Bone Name [%s] can\'t be flipped" % (bone_active.name)
+                    #self.endReport(reportString)
+            else:
+                reportString = "No Active Bone found"
+                
+            self.endReport(reportString)
+            
+        #Prints the info and flippedName of driver if it were added
+        elif self.type == "PRINT_ADD_DRIVER_MIRROR_INFO_TEST":
             
             anim_data = bpy.context.object.animation_data
-            direction = ("X", "Y", "Z")
-            
-            #For the Hidden, Muted, and Locked driver counts
-            toggled = [0,0,0]
             
             if anim_data.drivers != None:
                 data_path = anim_data.drivers[0].data_path
@@ -348,6 +312,15 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                     
                     print("flipNames: %s" % (flipNames( bpy.context.active_pose_bone.name )) )
                     
+                    #New
+                    nameFlipped = flipNames( split[1] )
+                    
+                    if nameFlipped != "":
+                        print("The 1st Driver: %s to %s" % (split[1], flipNames(split[1])) )
+                    else:
+                        print("\tName didn't flip: %s" % (split[1]) )
+                    #New
+                    
                 reportString = "Done!"
                 
                 print(reportString)
@@ -359,20 +332,12 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                 print(reportString)
                 self.report({'INFO'}, reportString)
                 
-        elif self.type == "FLIP_NAMES_TEST":
+        #Prints the flipped name of active pose bone, and 1st driver
+        elif self.type == "MIRROR_DRIVER_TEST_PRINT_V1":
             ob = bpy.context.object
             anim_data = ob.animation_data
             
             print("\nFlipped Names of:")
-            
-            if bpy.context.active_pose_bone != None:
-                nameNormal = bpy.context.active_pose_bone.name
-                nameFlipped = flipNames( nameNormal )
-                
-                if nameFlipped != "":
-                    print("Active Pose Bone: %s" % (nameFlipped) )
-                else:
-                    print("\tName didn't flip: %s" % (nameNormal) )
                 
             if anim_data.drivers != None:
                 data_path = anim_data.drivers[0].data_path
@@ -391,11 +356,12 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                 else:
                     print("\n Data_path didn't start with \"pose.bones\" \n")
             else:
-                print("\n There were 0 drivers on %s \n" % (ob.name) )
+                print("\n There were 0 drivers on %s to flip names\n" % (ob.name) )
                 
             reportString = "Done!"
             self.report({'INFO'}, reportString)
                 
+        #Adds a mirrored driver to test it
         elif self.type == "MIRROR_DRIVER_TEST":
             
             anim_data = bpy.context.object.animation_data
@@ -467,7 +433,7 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
                 print(reportString)
                 self.report({'INFO'}, reportString)
         
-        elif self.type == "MIRROR_DRIVER_TEST_PRINT":
+        elif self.type == "MIRROR_DRIVER_TEST_PRINT_V2":
             
             anim_data = bpy.context.object.animation_data
             direction = ("X", "Y", "Z")
@@ -544,6 +510,11 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
     sub: bpy.props.StringProperty(default="DEFAULT")
     #index: bpy.props.IntProperty(default=0, min=0)
     
+    def endReport(self, reportString):
+        print(reportString + "\n")
+        self.report({'INFO'}, reportString)
+        return {'FINISHED'}
+    
     def execute(self, context):
         scene = bpy.context.scene
         context = bpy.context
@@ -566,36 +537,31 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
         
         #Note: print() functions after #10 are the ones I commented to not print. Uncomment them to have them as before.
         
+        #This checks the self.type and .sub to see if the operator.execute should even continue or end with a return
         #if self.type == "MIRROR_FROM_ACTIVE_BONE" or self.type == "MIRROR_FROM_DIRECTION":
         if self.type == "ARMATURE":
             if self.sub == "ACTIVE_BONE_ALL" or self.type == "FROM_DIRECTION_ALL":
                 
                 bone_active = bpy.context.active_pose_bone
-                bones_selected = bpy.context.selected_pose_bones_from_active_object
+                #bones_selected = bpy.context.selected_pose_bones_from_active_object
                 
                 #If there is an active pose bone
                 if bone_active != None:
                     bone_active_direction = getDirection(bone_active.name)
-                    print("bone_active_direction: %s" % (bone_active_direction))
+                    print("bone_active_direction: %s" % (bone_active_direction) )
                     
                     #Checks if active bone's name can be flipped
                     if bone_active_direction == "":
+                        #reportString = "bone_active_direction: %s" % (bone_active_direction)
                         reportString = "Active Bone Name [%s] can\'t be flipped" % (bone_active.name)
-                        
-                        print(reportString + "\n")
-                        self.report({'INFO'}, reportString)
-                        return {'FINISHED'}
-                        
+                        self.endReport(reportString)
                 else:
                     reportString = "No Active Bone found"
-                    print(reportString + "\n")
-                    self.report({'INFO'}, reportString)
-                    return {'FINISHED'}
+                    self.endReport(reportString)
             else:
                 reportString = "self.sub type Unrecognized"
-                print(reportString + "\n")
-                self.report({'INFO'}, reportString)
-                return {'FINISHED'}
+                self.endReport(reportString)
+                
         #elif self.type == "MIRROR_FROM_ACTIVE_DRIVERS" or self.type == "MIRROR_FROM_DIRECTION_DRIVERS":
         elif self.type == "DRIVER_EDITOR":
             if self.sub == "ACTIVE_DRIVERS" or self.sub == "ACTIVE_FROM_DIRECTION":
@@ -608,8 +574,11 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
             self.report({'INFO'}, reportString)
             return {'FINISHED'}
                 
+        #This one builds the dictionaries
         #If there is at least one driver in object
-        if anim_data.drivers != None:
+        if anim_data.drivers == None:
+            reportString = "Object[%s] has No Drivers" % (bpy.context.object.name)
+        else:
             #bone name dictionary from drivers[].datapath
             dict_1 = {}
             
@@ -908,36 +877,15 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
                                             target_p.transform_type = p[1].transform_type
                                             target_p.rotation_mode = p[1].rotation_mode
                                             target_p.transform_space = p[1].transform_space
-                                            
-                                            #elif new_var.type == 'LOC_DIFF':
-                                            #    target_p.transform_space = p[1].transform_space
-                                            
-                                            #10print("  %d: transform_type: %s" % (p[0], p[1].transform_type))
-                                            
                             else:
                                 print("No Variables")
                 else:
                     print("\"%s\" isn\'t a bone" % (nameFlipped))
-                    
-            #print("\ndict_direction.items(): %s" % (str(dict_direction.items())) )
-            #10print("\ndict_direction.items(): %s" % (str(dict_direction)) )
             
             reportString = "Done!"
-                
-            #print(reportString + "\n")
-            #self.report({'INFO'}, reportString)
-            
         
-        else:
-            reportString = "Object[%s] has No Drivers" % (bpy.context.object.name)
-            """
-            else:
-                reportString = "Active Bone Name [%s] can\'t be flipped" % (bone_active.name)
-            """
-            """
-            else:
-                reportString = "No Active Bone found"
-            """
+        #else:
+        #reportString = "Object[%s] has No Drivers" % (bpy.context.object.name)
             
         print(reportString + "\n")
         self.report({'INFO'}, reportString)
@@ -1788,161 +1736,6 @@ class RIG_DEBUGGER_OT_DriverExtrapolation(bpy.types.Operator):
         
         return {'FINISHED'}
         
-class RIG_DEBUGGER_OT_BoneOps(bpy.types.Operator):
-    bl_idname = "rig_debugger.bone_ops"
-    bl_label = "Custom Bone Operators"
-    bl_description = "To assist with debugging and development"
-    bl_options = {'UNDO',}
-    type: bpy.props.StringProperty(default="DEFAULT")
-    #sub: bpy.props.StringProperty(default="DEFAULT")
-    #index: bpy.props.IntProperty(default=0, min=0)
-    
-    def execute(self, context):
-        scene = bpy.context.scene
-        context = bpy.context
-        data = context.object.data
-        props = scene.RD_Props
-        
-        #Creates animation_data if there isn't none
-        if self.type == "CREATE_EMPTY_BONE_GROUPS":
-            
-            if len(context.selected_objects) > 0:
-                
-                selected_bones = context.selected_pose_bones_from_active_object
-                
-                if len(selected_bones) > 0:
-                    
-                    selected_object = None
-                    groups_added = 0
-                    groups_existing = 0
-                    
-                    #This is the only way to know for sure that this is the object you want to add vertex groups to
-                    if context.object.type == 'MESH':
-                        selected_object = context.object
-                        
-                    #If active object is an Amature, you don't know which object is the Mesh of the armature
-                    elif context.object.type == 'ARMATURE':
-                        for i in context.selected_objects:
-                            #If object is a MESH
-                            if i.type == 'MESH':
-                                #Checks every modifier to see which one has the armature
-                                for j in i.modifiers:
-                                    if j.type == 'ARMATURE' and j.show_viewport == True:    
-                                        #If the armature is set in the Armature Modifier
-                                        if j.object is not None and j.object.type == 'ARMATURE':
-                                            selected_object = i
-                                            
-                    else:
-                        reportString = "Object to add Empty Vertex Groups to not Found."
-                        pass
-                    
-                    if selected_object != None:
-                        #Goes through every selected bone of armature
-                        for i in selected_bones:
-                            
-                            if selected_object.vertex_groups.get(i.name) is None:
-                                selected_object.vertex_groups.new(name=i.name)
-                                groups_added+= 1
-                            else:
-                                groups_existing+=1
-                                
-                        #if groups_added > 0:
-                        groups_total = groups_added + groups_existing
-                        reportString = "Added %d/%d New Vertex Groups to \"%s\"" % (groups_added, groups_total, selected_object.name)
-                    else:
-                        pass
-                        
-                else:
-                    reportString = "No Bones Selected!"
-            else:
-                reportString = "Only one object selected"
-                
-            print(reportString)
-            self.report({'INFO'}, reportString)
-                
-        #Resets default settings
-        self.type == "DEFAULT"
-        
-        return {'FINISHED'}
-        
-class RIG_DEBUGGER_OT_VertexGroupOps(bpy.types.Operator):
-    bl_idname = "rig_debugger.vertex_group_influence"
-    bl_label = "Custom Vertex Group Operators"
-    bl_description = "To assist with debugging and development"
-    bl_options = {'UNDO',}
-    type: bpy.props.StringProperty(default="DEFAULT")
-    include: bpy.props.BoolProperty(default=False)
-    mirror: bpy.props.BoolProperty(default=False)
-    #sub: bpy.props.StringProperty(default="DEFAULT")
-    #index: bpy.props.IntProperty(default=0, min=0)
-    
-    def execute(self, context):
-        scene = bpy.context.scene
-        context = bpy.context
-        data = context.object.data
-        props = scene.RD_Props
-        
-        #Creates animation_data if there isn't none
-        if self.type == "CREATE_EMPTY_BONE_GROUPS":
-            
-            if len(context.selected_objects) > 0:
-                
-                selected_bones = context.selected_pose_bones_from_active_object
-                
-                if len(selected_bones) > 0:
-                    
-                    selected_object = None
-                    groups_added = 0
-                    groups_existing = 0
-                    
-                    #This is the only way to know for sure that this is the object you want to add vertex groups to
-                    if context.object.type == 'MESH':
-                        selected_object = context.object
-                        
-                    #If active object is an Amature, you don't know which object is the Mesh of the armature
-                    elif context.object.type == 'ARMATURE':
-                        for i in context.selected_objects:
-                            #If object is a MESH
-                            if i.type == 'MESH':
-                                #Checks every modifier to see which one has the armature
-                                for j in i.modifiers:
-                                    if j.type == 'ARMATURE' and j.show_viewport == True:    
-                                        #If the armature is set in the Armature Modifier
-                                        if j.object is not None and j.object.type == 'ARMATURE':
-                                            selected_object = i
-                                            
-                    else:
-                        reportString = "Object to add Empty Vertex Groups to not Found."
-                        pass
-                    
-                    if selected_object != None:
-                        #Goes through every selected bone of armature
-                        for i in selected_bones:
-                            
-                            if selected_object.vertex_groups.get(i.name) is None:
-                                selected_object.vertex_groups.new(name=i.name)
-                                groups_added+= 1
-                            else:
-                                groups_existing+=1
-                                
-                        #if groups_added > 0:
-                        groups_total = groups_added + groups_existing
-                        reportString = "Added %d/%d New Vertex Groups to \"%s\"" % (groups_added, groups_total, selected_object.name)
-                    else:
-                        pass
-                        
-                else:
-                    reportString = "No Bones Selected!"
-            else:
-                reportString = "Only one object selected"
-                
-            print(reportString)
-            self.report({'INFO'}, reportString)
-                
-        #Resets default settings
-        self.type == "DEFAULT"
-        
-        return {'FINISHED'}
         
 class RIG_DEBUGGER_OT_VertexGroup_Ops(bpy.types.Operator):
     bl_idname = "rig_debugger.vertex_group_ops"
@@ -1952,6 +1745,85 @@ class RIG_DEBUGGER_OT_VertexGroup_Ops(bpy.types.Operator):
     type: bpy.props.StringProperty(default="DEFAULT")
     #include: bpy.props.BoolProperty(default=False)
     #mirror: bpy.props.BoolProperty(default=False)
+    #sub: bpy.props.StringProperty(default="DEFAULT")
+    #index: bpy.props.IntProperty(default=0, min=0)
+    
+    def execute(self, context):
+        scene = bpy.context.scene
+        context = bpy.context
+        data = context.object.data
+        props = scene.RD_Props
+        
+        #Creates animation_data if there isn't none
+        if self.type == "CREATE_EMPTY_BONE_GROUPS":
+            
+            if len(context.selected_objects) > 0:
+                
+                selected_bones = context.selected_pose_bones_from_active_object
+                
+                if len(selected_bones) > 0:
+                    
+                    selected_object = None
+                    groups_added = 0
+                    groups_existing = 0
+                    
+                    #This is the only way to know for sure that this is the object you want to add vertex groups to
+                    if context.object.type == 'MESH':
+                        selected_object = context.object
+                        
+                    #If active object is an Amature, you don't know which object is the Mesh of the armature
+                    elif context.object.type == 'ARMATURE':
+                        for i in context.selected_objects:
+                            #If object is a MESH
+                            if i.type == 'MESH':
+                                #Checks every modifier to see which one has the armature
+                                for j in i.modifiers:
+                                    if j.type == 'ARMATURE' and j.show_viewport == True:    
+                                        #If the armature is set in the Armature Modifier
+                                        if j.object is not None and j.object.type == 'ARMATURE':
+                                            selected_object = i
+                                            
+                    else:
+                        reportString = "Object to add Empty Vertex Groups to not Found."
+                        pass
+                    
+                    if selected_object != None:
+                        #Goes through every selected bone of armature
+                        for i in selected_bones:
+                            
+                            if selected_object.vertex_groups.get(i.name) is None:
+                                selected_object.vertex_groups.new(name=i.name)
+                                groups_added+= 1
+                            else:
+                                groups_existing+=1
+                                
+                        #if groups_added > 0:
+                        groups_total = groups_added + groups_existing
+                        reportString = "Added %d/%d New Vertex Groups to \"%s\"" % (groups_added, groups_total, selected_object.name)
+                    else:
+                        pass
+                        
+                else:
+                    reportString = "No Bones Selected!"
+            else:
+                reportString = "Only one object selected"
+                
+            print(reportString)
+            self.report({'INFO'}, reportString)
+                
+        #Resets default settings
+        self.type == "DEFAULT"
+        
+        return {'FINISHED'}
+
+class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
+    bl_idname = "rig_debugger.vertex_group_influence"
+    bl_label = "Custom Vertex Group Operators"
+    bl_description = "To assist with debugging and development"
+    bl_options = {'UNDO',}
+    type: bpy.props.StringProperty(default="DEFAULT")
+    include: bpy.props.BoolProperty(default=False)
+    mirror: bpy.props.BoolProperty(default=False)
     #sub: bpy.props.StringProperty(default="DEFAULT")
     #index: bpy.props.IntProperty(default=0, min=0)
     
@@ -2331,46 +2203,8 @@ def calculateUIALL(string):
         pass
     
     return count
-   
-#Tried to do this for the active/selected "Driver" in the Driver Editor, but it isn't accessable via python, so I would have to learn C in order to expose the RNA   
-"""
-#Calculates ammounts of different attributes drivers have
-def calculateUIActive(string):
-    ob = bpy.context.object
-    anim_data = ob.animation_data
     
-    count = 0
-    
-    if ob.type == 'ARMATURE':
-        
-    
-    if len(anim_data.drivers) > 0:
-        #If driver toggled as hidden/inactive in the UI
-        if string == "hide":
-            for i in anim_data.drivers:
-                if i.hide == True:
-                    count += 1
-                    
-        elif string == "mute":
-            for i in anim_data.drivers:
-                if i.mute == True:
-                    count += 1
-                    
-        elif string == "lock":
-            for i in anim_data.drivers:
-                if i.lock == True:
-                    count += 1
-                    
-        #Calculates how many Drivers have at least 1 modifier
-        elif string == "modifiers":
-            for i in anim_data.drivers:
-                if len(i.modifiers) > 0:
-                    count += 1
-        
-    else:
-        pass
-    
-    return count """
+#Tried to do this for the active/selected "Driver" in the Driver Editor, but it isn't accessable via python, so I would have to learn C in order to expose the RNA
 
 class RIG_DEBUGGER_WEIGHTGROUPS_UL_items(bpy.types.UIList):
     
@@ -2481,18 +2315,29 @@ class RIG_DEBUGGER_PT_CustomPanel1(bpy.types.Panel):
         col.separator()
         
         if props.dropdown_debugger == True:
-            row = col.row(align=True)
-            row.operator("rig_debugger.debug", icon="INFO", text="Mirror Driver Test Print").type = "MIRROR_DRIVER_TEST_PRINT"
             
             row = col.row(align=True)
-            row.operator("rig_debugger.debug", text="Print All Drivers").type = "PRINT_ALL"
+            row.label(text="Print: ")
             
             row = col.row(align=True)
-            row.operator("rig_debugger.debug", text="Print Add Driver Test").type = "PRINT_ADD_DRIVER_TEST"
+            row.operator("rig_debugger.debug", icon="INFO", text="Mirror Driver Test V2").type = "MIRROR_DRIVER_TEST_PRINT_V2"
+            
+            row = col.row(align=True)
+            row.operator("rig_debugger.debug", text="Active Bone Direction and Flip").type = "PRINT_ACTIVE_BONE_FLIPPED"
+            
+            row = col.row(align=True)
+            row.operator("rig_debugger.debug", text="Mirror Driver Test V1").type = "MIRROR_DRIVER_TEST_PRINT_V1"
+            
+            row = col.row(align=True)
+            row.operator("rig_debugger.debug", text="All Driver UI Info").type = "PRINT_ALL_DRIVER_UI_INFO"
+            
+            row = col.row(align=True)
+            row.operator("rig_debugger.debug", text="Add Driver Mirror Info Test").type = "PRINT_ADD_DRIVER_MIRROR_INFO_TEST"
             
             #Just to test my FlipNames function
+            
             row = col.row(align=True)
-            row.operator("rig_debugger.debug", text="Flip Names Test").type = "FLIP_NAMES_TEST"
+            row.label(text="Adding: ")
             
             row = col.row(align=True)
             row.operator("rig_debugger.debug", text="Mirror Driver Test").type = "MIRROR_DRIVER_TEST"
@@ -2665,7 +2510,7 @@ class DriverInfoDraw:
         row.label(text="Influence Vertex Groups Op:")
         
         row = col.row(align=True)
-        button = row.operator("rig_debugger.vertex_group_ops", text="From Selection", icon="RESTRICT_SELECT_OFF")
+        button = row.operator("rig_debugger.vertex_group_influence", text="From Selection", icon="RESTRICT_SELECT_OFF")
         button.type = "FROM_SELECTION"
         
         col.separator()
@@ -2730,7 +2575,7 @@ class VertexGroupsOpsDraw:
         row = col.row(align=True)
         row.label(text="Create Vertex Groups:")
         row = col.row(align=True)
-        row.operator("rig_debugger.bone_ops", text="Empty Vertex Groups From Bones", icon="GROUP_VERTEX").type = "CREATE_EMPTY_BONE_GROUPS"
+        row.operator("rig_debugger.vertex_group_ops", text="Empty Vertex Groups From Bones", icon="GROUP_VERTEX").type = "CREATE_EMPTY_BONE_GROUPS"
         
         col.separator()
         
@@ -2738,7 +2583,7 @@ class VertexGroupsOpsDraw:
         row.label(text="Influence Vertex Groups:")
         
         row = col.row(align=True)
-        button = row.operator("rig_debugger.vertex_group_ops", text="From Vertex Selection", icon="RESTRICT_SELECT_OFF")
+        button = row.operator("rig_debugger.vertex_group_influence", text="From Vertex Selection", icon="RESTRICT_SELECT_OFF")
         button.type = "FROM_SELECTION"
         
         col.separator()
@@ -2901,7 +2746,7 @@ class RIG_DEBUGGER_Props(bpy.types.PropertyGroup):
     
     lock_active: bpy.props.BoolProperty(name="Lock Collection of Active", description="When locked, you can now edit the name of the selected collection", default=False)
     
-    #For rig_debugger.vertex_group_influence TOP
+    #For rig_debugger.vertex_group_ops TOP
     vertex_groups: bpy.props.CollectionProperty(type=RIG_DEBUGGER_WeightGroups)
     
     RD_ULIndex: bpy.props.IntProperty(name="List Index", description="UI List Index", default= 0, min=0)
@@ -2914,7 +2759,7 @@ class RIG_DEBUGGER_Props(bpy.types.PropertyGroup):
     
     include_mirror_selection: bpy.props.BoolProperty(name="Include Mirrored Vertices", description="Also Mirror the selection of the Weights", default=False)
     
-    #For rig_debugger.vertex_group_influence BOTTOM
+    #For rig_debugger.vertex_group_ops BOTTOM
     
     
     
@@ -2933,12 +2778,11 @@ classes = (
     RIG_DEBUGGER_OT_Debugging,
     RIG_DEBUGGER_OT_DriverMirror,
     RIG_DEBUGGER_OT_DriverOps,
-    RIG_DEBUGGER_OT_VertexGroupOps,
     RIG_DEBUGGER_OT_DriverExtrapolation,
     
-    RIG_DEBUGGER_OT_BoneOps,
-    #RIG_DEBUGGER_OT_UIOperators,
     RIG_DEBUGGER_OT_VertexGroup_Ops,
+    RIG_DEBUGGER_OT_VertexGroupInfluence,
+    #RIG_DEBUGGER_OT_UIOperators,
     RIG_DEBUGGER_OT_VertexGroup_UIOps,
     
     #RIG_DEBUGGER_UL_items,
