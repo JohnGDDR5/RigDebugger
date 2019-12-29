@@ -135,21 +135,24 @@ def getDirection(string, flip=False):
         print("getDirection(): Match Fail for %s" % (string) )
         return ""
 
-def sideCase(string, flip=False):
+#Fixes issues with case capitalization, ex. "RiGhT" to "Right", and "rIGHT" to "right"
+def fixCaseIssues(string, flip=False):
     
     sides = ("left", "right")
-    stringNew = string
+    stringFlip = string
     
     #flips the name
     if flip == True:
         if string[0].lower() == "l":
-            stringNew = sides[1]
+            stringFlip = sides[1]
         elif string[0].lower() == "r":
-            stringNew = sides[0]
+            stringFlip = sides[0]
         #Just incase of an Error
         else:
             return None
-    #print("String 2: %s, %s" % (string, stringNew))
+    #print("String 2: %s, %s" % (string, stringFlip))
+    
+    #Checks if the string is one character long "l" or "r", or longer "left", "right"
     if len(string) > 1:
         #Checks if 1st and 2nd character are uppercase or lower
         cases = (string[0].isupper(), string[1].isupper() )
@@ -161,26 +164,27 @@ def sideCase(string, flip=False):
         else:
             #If 1st is uppercase and 2nd is lowercase, make rest of string lowercase
             if cases[1] == False:
-                stringNew = stringNew[0].upper() + stringNew[1:]
+                stringFlip = stringFlip[0].upper() + stringFlip[1:]
             #If 1st and 2nd character are uppercase, make all uppercase
             else:
-                stringNew.upper()
+                stringFlip.upper()
                 
-        return stringNew
+        #return stringFlip
     else:
         case = string[0].isupper()
         #Makes string only one character long
-        stringNew = stringNew[0]
+        stringFlip = stringFlip[0]
         
         #If 1st character is uppercase
         if case == True:
-            stringNew = stringNew.upper()
-            #print("BRUH: %s" % (stringNew) )
+            stringFlip = stringFlip.upper()
+            #print("BRUH: %s" % (stringFlip) )
             
-        return stringNew
+    return stringFlip
         
 #Takes in a string to check if it is flipabble, and an optional object, to change the name of the object if it is wrong.
-def flipNames(string, object = None):
+#def flipNames(string, object = None):
+def flipNames(string):
     #print("flipNames(): %s" % (string) )
     
     match = getDirectionRegEx(string)
@@ -192,7 +196,7 @@ def flipNames(string, object = None):
         start = match.start(0)
         end = match.end(0)
         #print("Span: %s" % (str(span)) )
-        matchFlipped = sideCase(matchString, flip=True)
+        matchFlipped = fixCaseIssues(matchString, flip=True)
         
         #string = string[:index] + replace + string[index+len(sides[side]):]
         string = string[:start] + matchFlipped + string[start+len(matchFlipped):]
@@ -2306,41 +2310,57 @@ class RIG_DEBUGGER_PT_CustomPanel1(bpy.types.Panel):
         
         col.separator()
         
-        
-        #Debug Operators
         row = col.row(align=True)
-        row.prop(props, "dropdown_debugger", icon="DOWNARROW_HLT", text="")
-        row.label(text="Debug Operators:")
+        row.prop(props, "debug_mode", text="Debug Panels", icon="DECORATE_OVERRIDE")
         
-        col.separator()
+        #End of CustomPanel
         
-        if props.dropdown_debugger == True:
-            
-            row = col.row(align=True)
-            row.label(text="Print: ")
-            
-            row = col.row(align=True)
-            row.operator("rig_debugger.debug", icon="INFO", text="Mirror Driver Test V2").type = "MIRROR_DRIVER_TEST_PRINT_V2"
-            
-            row = col.row(align=True)
-            row.operator("rig_debugger.debug", text="Active Bone Direction and Flip").type = "PRINT_ACTIVE_BONE_FLIPPED"
-            
-            row = col.row(align=True)
-            row.operator("rig_debugger.debug", text="Mirror Driver Test V1").type = "MIRROR_DRIVER_TEST_PRINT_V1"
-            
-            row = col.row(align=True)
-            row.operator("rig_debugger.debug", text="All Driver UI Info").type = "PRINT_ALL_DRIVER_UI_INFO"
-            
-            row = col.row(align=True)
-            row.operator("rig_debugger.debug", text="Add Driver Mirror Info Test").type = "PRINT_ADD_DRIVER_MIRROR_INFO_TEST"
-            
-            #Just to test my FlipNames function
-            
-            row = col.row(align=True)
-            row.label(text="Adding: ")
-            
-            row = col.row(align=True)
-            row.operator("rig_debugger.debug", text="Mirror Driver Test").type = "MIRROR_DRIVER_TEST"
+class RIG_DEBUGGER_PT_CustomPanel1_Debug(bpy.types.Panel):
+    #A Custom Panel in Viewport
+    #bl_idname = "RIG_DEBUGGER_PT_CustomPanel1"
+    bl_parent_id = "RIG_DEBUGGER_PT_CustomPanel1"
+    bl_label = "Debug Operators"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = 'UI'
+    #bl_context = "output"
+    bl_category = "Rig Debugger"
+    
+    # draw function
+    def draw(self, context):
+                 
+        layout = self.layout
+        ob = bpy.context.object
+        scene = context.scene
+        props = scene.RD_Props
+        
+        #Layout Starts
+        col = layout.column()
+        
+        row = col.row(align=True)
+        row.label(text="Print: ")
+        
+        row = col.row(align=True)
+        row.operator("rig_debugger.debug", icon="INFO", text="Mirror Driver Test V2").type = "MIRROR_DRIVER_TEST_PRINT_V2"
+        
+        row = col.row(align=True)
+        row.operator("rig_debugger.debug", text="Active Bone Direction and Flip").type = "PRINT_ACTIVE_BONE_FLIPPED"
+        
+        row = col.row(align=True)
+        row.operator("rig_debugger.debug", text="Mirror Driver Test V1").type = "MIRROR_DRIVER_TEST_PRINT_V1"
+        
+        row = col.row(align=True)
+        row.operator("rig_debugger.debug", text="All Driver UI Info").type = "PRINT_ALL_DRIVER_UI_INFO"
+        
+        row = col.row(align=True)
+        row.operator("rig_debugger.debug", text="Add Driver Mirror Info Test").type = "PRINT_ADD_DRIVER_MIRROR_INFO_TEST"
+        
+        #Just to test my FlipNames function
+        
+        row = col.row(align=True)
+        row.label(text="Adding: ")
+        
+        row = col.row(align=True)
+        row.operator("rig_debugger.debug", text="Mirror Driver Test").type = "MIRROR_DRIVER_TEST"
         
         #End of CustomPanel
         
@@ -2420,18 +2440,8 @@ class RIG_DEBUGGER_PT_CustomPanel2(bpy.types.Panel):
         
         anim_data = ob.animation_data
         
-        row = col.row(align=True)
+        #row = col.row(align=True)
         
-        """
-        if anim_data != None:
-            row.label(text="Driver[0]\'s Extrapolation")
-            row = col.row(align=True)
-            row.prop(anim_data.drivers[0], "extrapolation", emboss= True, expand= True, icon="NONE")
-        else:
-            row.operator("rig_debugger.debug", icon="INFO", text="Create Animation_Data").type = "CREATE_ANIMATION_DATA"
-            
-        col.separator() """
-        #IPO_CONSTANT IPO_LINEAR
         
         #icon = "IPO_CONSTANT" if props.driver_extrapolation is 'CONSTANT' else "IPO_LINEAR"
         
@@ -2442,17 +2452,34 @@ class RIG_DEBUGGER_PT_CustomPanel2(bpy.types.Panel):
         row.operator("rig_debugger.driver_extrapolation", text="Set Extrapolation").type = "UPDATE"
         row.prop(props, "driver_extrapolation", icon="NONE", text="", emboss= True, expand= False)
         
-        col.separator()
+        #End of CustomPanel
+        
+class RIG_DEBUGGER_PT_CustomPanel2_Debug(bpy.types.Panel):
+    #A Custom Panel in Viewport
+    #bl_idname = "RIG_DEBUGGER_PT_CustomPanel2"
+    bl_parent_id = "RIG_DEBUGGER_PT_CustomPanel2"
+    bl_label = "Driver Debugger"
+    bl_space_type = "GRAPH_EDITOR"
+    bl_region_type = 'UI'
+    #bl_context = "output"
+    bl_category = "Driver Debugger"
+    
+    # draw function
+    def draw(self, context):
+                 
+        layout = self.layout
+        ob = bpy.context.object
+        scene = context.scene
+        props = scene.RD_Props
+        
+        #Layout Starts
+        col = layout.column()
         
         row = col.row(align=True)
-        row.prop(props, "dropdown_debugger", icon="DOWNARROW_HLT", text="")
-        row.label(text="Driver Debugger:")
+        row.label(text="Print: ")
         
-        col.separator()
-        
-        if props.dropdown_debugger == True:
-            row = col.row(align=True)
-            row.operator("rig_debugger.driver_extrapolation", icon="INFO", text="Print Active Driver Extrapolation Info").type = "PRINT_INFO"
+        row = col.row(align=True)
+        row.operator("rig_debugger.driver_extrapolation", icon="INFO", text="Print Active Driver Extrapolation Info").type = "PRINT_INFO"
             
         #End of CustomPanel
         
@@ -2503,60 +2530,7 @@ class DriverInfoDraw:
                 row = col.row(align=True)
                 row.operator("rig_debugger.debug", icon="INFO", text="Create Animation_Data").type = "CREATE_ANIMATION_DATA"
                 
-        """
-        col.separator()
-        
-        row = col.row(align=True)
-        row.label(text="Influence Vertex Groups Op:")
-        
-        row = col.row(align=True)
-        button = row.operator("rig_debugger.vertex_group_influence", text="From Selection", icon="RESTRICT_SELECT_OFF")
-        button.type = "FROM_SELECTION"
-        
-        col.separator()
-        
-        row = col.row(align=True)
-        row.prop(props, "inclusion", expand=True)
-        
-        row = col.row(align=True)
-        row.prop(props, "vertex_group_weight", expand=True)
-        
-        row = col.row(align=True)
-        row.prop(props, "include_mirror_selection", expand=True)
-        
-        row = col.row(align=True)
-        row.label(text="Object Vertex Groups:")
-        
-        #Splitting for the template_list
-        split = layout.row(align=False)
-        col = split.column(align=True)
-        
-        row = col.row(align=True)
-        ob = context.object
-        row.template_list("MESH_UL_vgroups", "", ob, "vertex_groups", ob.vertex_groups, "active_index", rows=5)
-        
-        col = split.column(align=True)
-        
-        row = col.row(align=True)
-        button = row.operator("rig_debugger.vertex_group_ui_ops", text="", icon="ADD")
-        button.type = "ADD"
-        
-        #Splitting for the template_list
-        split = layout.row(align=False)
-        col = split.column(align=True)
-        
-        row = col.row(align=True)
-        row.template_list("RIG_DEBUGGER_WEIGHTGROUPS_UL_items", "custom_def_list", props, "vertex_groups", props, "RD_ULIndex", rows=3)
-        
-        #Side_Bar Operators
-        col = split.column(align=True)
-        
-        row = col.row(align=True)
-        button = row.operator("rig_debugger.vertex_group_ui_ops", text="", icon="X")
-        button.type = "REMOVE"
-        
-        #End of CustomPanel
-        #"""
+    #End of DriverInfoDraw
         
 #Class to inherit the draw() function from for UI Panel
 class VertexGroupsOpsDraw:
@@ -2723,6 +2697,43 @@ class RIG_DEBUGGER_WeightGroups(bpy.types.PropertyGroup):
     index: bpy.props.IntProperty(name="Int", description="", default= 0, min=0)
     use: bpy.props.BoolProperty(name="Use for calculation", description="Toggle if this Vertex Group will be used in caclulation", default=True)
     
+def registerDebugPanelClasses(self, context):
+    """
+    print("self: %s, class: %s" % (self, self.__class__) )
+    print("dir: %s" % (str(dir(self)) ) )
+    print("dir.__class__: %s" % (str(dir(self.__class__)) ) )
+    print("self.__class__.__name__: %s" % (str(self.__class__.__name__) ) )
+    print("context: %s" % (context) )
+    #"""
+    propertyClassName = self.__class__.__name__
+    
+    attributeName = "debug_mode"
+    
+    if hasattr(self, attributeName):
+        mode = getattr(self, attributeName)
+        print("Mode: %s" % (mode) )
+        
+        registerClassName = "RIG_DEBUGGER_PT_CustomPanel1_Debug"
+        
+        if mode == False:
+            if hasattr(bpy.types, registerClassName) == True:
+                bpy.utils.unregister_class(bpy.types.RIG_DEBUGGER_PT_CustomPanel1_Debug)
+                print("Unregistered: %s" % (registerClassName) )
+            else:
+                print("Already UnRegistered: %s" % (registerClassName) )
+        else:
+            if hasattr(bpy.types, registerClassName) == False:
+                #bpy.utils.register_class(bpy.types.RIG_DEBUGGER_PT_CustomPanel1_Debug)
+                bpy.utils.register_class(RIG_DEBUGGER_PT_CustomPanel1_Debug)
+                print("Registered: %s" % (registerClassName) )
+            else:
+                print("Already Registered: %s" % (registerClassName) )
+        
+    else:
+        print("Class: %s missing attribute %s" % (propertyClassName, attributeName) )
+    
+    return None
+    
 class RIG_DEBUGGER_Props(bpy.types.PropertyGroup):
     #Tries to set collection_parent's default to Master Collection
     override_existing_drivers: bpy.props.BoolProperty(name="Override Existing Drivers", description="Overrides the drivers of the existing flipped driver", default=False)
@@ -2763,7 +2774,7 @@ class RIG_DEBUGGER_Props(bpy.types.PropertyGroup):
     
     
     
-    debug_mode: bpy.props.BoolProperty(name="Display Debug Operators", description="To aid in Debugging Operators. Displayed in \"Display Settings\"", default=True)
+    debug_mode: bpy.props.BoolProperty(name="Display Debug Operators", description="To aid in Debugging Operators. Displayed in \"Display Settings\"", default=True, update=registerDebugPanelClasses)
     
     #For Iterate Collection Settings and Operators
     
@@ -2789,7 +2800,11 @@ classes = (
     
     RIG_DEBUGGER_WEIGHTGROUPS_UL_items,
     RIG_DEBUGGER_PT_CustomPanel1,
+    RIG_DEBUGGER_PT_CustomPanel1_Debug,
+    
     RIG_DEBUGGER_PT_CustomPanel2,
+    RIG_DEBUGGER_PT_CustomPanel2_Debug,
+    
     RIG_DEBUGGER_PT_DriverInfo1,
     RIG_DEBUGGER_PT_DriverInfo2,
     
@@ -2807,6 +2822,7 @@ def register():
     from bpy.utils import register_class
     for cls in classes:
         register_class(cls)
+        print("Class Name: %s" % (cls.__name__) )
     
     #bpy.types.Scene.IM_Collections = bpy.props.CollectionProperty(type=REF_IMAGEAID_Collections)
     bpy.types.Scene.RD_Props = bpy.props.PointerProperty(type=RIG_DEBUGGER_Props)
