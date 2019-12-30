@@ -83,8 +83,8 @@ def objectIcon(object):
                 
     return icon
 
-#Will return match object or None if string wasn't found
-def getDirectionRegEx(string):
+"""
+def RegExVariables:
     pattern = '(?<=[ \.\-_])[rRlL]((?=$|[ \.\-_])|(?i)(ight|eft))'
     
     #print("pattern: %s" % (pattern) )
@@ -94,10 +94,29 @@ def getDirectionRegEx(string):
     
     #compiled RegEx object
     regex = re.compile(rawString)
+#"""
+
+#Will return match object or None if string wasn't found. Ex. "RiGhT"
+def getDirectionRegEx(string, type=None):
+    #"""
+    pattern = '(?<=[ \.\-_])[rRlL]((?=$|[ \.\-_])|(?i)(ight|eft))'
+    
+    #print("pattern: %s" % (pattern) )
+    rawString = r'%s' % (pattern)
+    
+    #print("rawString: %s" % (rawString) )
+    
+    #compiled RegEx object
+    regex = re.compile(rawString)
+    #"""
     
     match = regex.search(string)
     
-    return match
+    if type == "STRING":
+        matchString = match.group(0)
+        return matchString
+    else:
+        return match
     
 def getDirection(string, flip=False):
     #Will return "l" or "r"
@@ -1949,7 +1968,7 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
                     
             return verts
             
-        #Gets list of Vertex Groups indexes from props.vertex_groups
+        #Gets list of Vertex Groups indexes from String names in props.vertex_groups
         def getVerGpsProps(propGroup, object):
             ob = object
             vertex_group_index_list = []
@@ -1963,17 +1982,51 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
                     
             return vertex_group_index_list
             
-        def getVerGpsFromDirection(vertex_group_index_list, direction):
+        #object for .vertex_groups, index list [1,3,4...], direction = "LEFT" string, exclude_non_sides = False boolean
+        def getVerGpsFromDirection(object, vertex_group_index_list, direction, exclude_non_sides=False, enforce_direction=False):
             ob = object
             vertex_group_index_list_new = []
             
-            #Sets "LEFT" to "l" to compare with getDirection()
+            #Sets "LEFT" or "RIGHT" to "l" or "r" to compare with getDirection()
             dir = direction[0].lower()
             
-            for i in vertex_group_index_list:
-                #Checks if name is in vertex_groups
-                if getDirection(i) == dir:
-                    vertex_group_index_list_new.append(i)
+            #If you want vertex_groups from a specific direction
+            if enforce_direction == True:
+                for i in vertex_group_index_list:
+                    #Gets name of vertex_group
+                    vert_grp_name = ob.vertex_groups[i].name
+                    
+                    #vert_grp_dir = getDirectionRegEx(vert_grp_name, type="STRING")[0].lower()
+                    vert_grp_dir = getDirection(vert_grp_name)
+                    #matchString = vert_grp_dir.group(0)[0].lower()
+                    print("vert_grp_dir: %s" % (vert_grp_dir) )
+                    #print("vert_grp_dir: %s" % (matchString) )
+                    #if enforce_direction == True:
+                    #If you want to exclude nonsided vertex_groups. ex. "Hips"
+                    if exclude_non_sides == True:
+                        if vert_grp_dir == dir:
+                            vertex_group_index_list_new.append(i)
+                    else:
+                        #Checks if its None, since that is what getDirectionRegEx() returns if no side match is found
+                        if vert_grp_dir == dir or vert_grp_dir == "":
+                            vertex_group_index_list_new.append(i)
+            else:
+                #If you want to exclude nonsided vertex_groups. ex. "Hips"
+                if exclude_non_sides == True:
+                    for i in vertex_group_index_list:
+                        #Gets name of vertex_group
+                        vert_grp_name = ob.vertex_groups[i].name
+                        
+                        #vert_grp_dir = getDirectionRegEx(vert_grp_name, type="STRING")[0].lower()
+                        #vert_grp_dir = getDirectionRegEx(vert_grp_name)
+                        vert_grp_dir = getDirection(vert_grp_name)
+                        
+                        #Checks if it is a side
+                        if vert_grp_dir != "":
+                            vertex_group_index_list_new.append(i)
+                else:
+                    vertex_group_index_list = vertex_group_index_list_new
+                    
                     
             return vertex_group_index_list_new
             
@@ -2011,6 +2064,8 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
             vg_weight = props.vertex_group_weight
             select_mirror = props.include_mirror_selection
             
+            direction = props.direction
+            
             #selects the mirrored vertices to also affect them and their weights. 
             if select_mirror:
                 self.selectMirror(prev_mode, ob)
@@ -2023,6 +2078,19 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
             #index list of props.vertex_groups to compare to object vertex_groups
             vg_props = getVerGpsProps(props.vertex_groups, ob)
             
+            if props.enforce_direction == True or props.exclude_non_sides == True:
+                vg_props = getVerGpsFromDirection(ob, vg_props, direction, props.exclude_non_sides, props.enforce_direction)
+                
+            name_list = []
+            for i in vg_props:
+                name_list.append(ob.vertex_groups[i].name)
+                
+            print(direction)
+            print("getVerGpsFromDirection(): %s" % (str(name_list) ) )
+            #getVerGpsFromDirection(object, vertex_group_index_list, direction, exclude_non_sides=False, enforce_direction=False)
+            
+            #Note: This return is for Testing
+            return {'FINISHED'}
             #dictionary used for statsistics of Vertex Groups and Vertices affected
             vg_stats = createVerGpsDictStats(vg_props)
             
@@ -2260,12 +2328,13 @@ class RIG_DEBUGGER_OT_VertexGroup_UIOps(bpy.types.Operator):
         self.mirror = False
         print("Reset States: %s, %d, %d" % (self.type, self.include, self.mirror) )
         #return None
-        
+    """
     def __init__(self):
         print("Start")
 
     def __del__(self):
         print("End")
+    #"""
         
     #def index_check(type):
     def index_check(index, type, iterator=None):
@@ -2757,6 +2826,17 @@ class VertexGroupsOpsDraw:
         row = col.row(align=True)
         row.prop(props, "include_mirror_selection", expand=True)
         
+        col.separator()
+        
+        row = col.row(align=True)
+        row.prop(props, "exclude_non_sides", expand=True)
+        
+        row = col.row(align=True)
+        row.prop(props, "enforce_direction", expand=True)
+        
+        row = col.row(align=True)
+        row.prop(props, "direction", expand=True)
+        row.active = bool(props.enforce_direction)
         #col.separator()
         
         #Start of template_list UI
@@ -2967,9 +3047,14 @@ class RIG_DEBUGGER_Props(bpy.types.PropertyGroup):
     
     include_mirror_selection: bpy.props.BoolProperty(name="Include Mirrored Selection", description="Also Mirror the selection of the Vertexes. And therefore, also the Weights", default=False)
     
-    enforce_direction: bpy.props.BoolProperty(name="Effect Vertex Groups from Direction", description="Toggle to select only from Vertex Groups in a direction", default=True)
+    
+    exclude_non_sides: bpy.props.BoolProperty(name="Exclude Non Sides", description="Exclude Vertex Groups that aren't from a side \"L\" or \"R\" ", default=True)
+    
+    enforce_direction: bpy.props.BoolProperty(name="Enforce Direction", description="Toggle to Effect only Vertex Groups in a direction. L/R", default=True)
     
     direction: bpy.props.EnumProperty(name="Direction", items= [("LEFT", "Left", inclusion_desc[0]), ("RIGHT", "Right", inclusion_desc[1])], description="Inclusion mode of influencing Vertex Groups", default="LEFT")
+    
+    auto_mirror: bpy.props.BoolProperty(name="Auto Mirror Direction", description="Toggle to automatically mirror Vertex Groups from a chosen direction. L/R", default=True)
     
     #For rig_debugger.vertex_group_ops BOTTOM
     
