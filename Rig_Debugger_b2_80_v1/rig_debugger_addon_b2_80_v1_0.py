@@ -100,6 +100,7 @@ def getDirectionRegEx(string):
     return match
     
 def getDirection(string, flip=False):
+    #Will return "l" or "r"
     #print("getDirection(): %s" % (string) )
     
     match = getDirectionRegEx(string)
@@ -1822,7 +1823,7 @@ class RIG_DEBUGGER_OT_VertexGroup_Ops(bpy.types.Operator):
 
 class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
     bl_idname = "rig_debugger.vertex_group_influence"
-    bl_label = "Custom Vertex Group Operators"
+    bl_label = "Changes the weight of multiple Vertex Groups based on selected vertices"
     bl_description = "To assist with debugging and development"
     bl_options = {'UNDO',}
     type: bpy.props.StringProperty(default="DEFAULT")
@@ -1962,6 +1963,20 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
                     
             return vertex_group_index_list
             
+        def getVerGpsFromDirection(vertex_group_index_list, direction):
+            ob = object
+            vertex_group_index_list_new = []
+            
+            #Sets "LEFT" to "l" to compare with getDirection()
+            dir = direction[0].lower()
+            
+            for i in vertex_group_index_list:
+                #Checks if name is in vertex_groups
+                if getDirection(i) == dir:
+                    vertex_group_index_list_new.append(i)
+                    
+            return vertex_group_index_list_new
+            
         #Creates a dictionary of Vertex Group indexes, to use for Statistical purposes
         def createVerGpsDictStats(vertex_group_index_list):
             dict = {}
@@ -1996,6 +2011,7 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
             vg_weight = props.vertex_group_weight
             select_mirror = props.include_mirror_selection
             
+            #selects the mirrored vertices to also affect them and their weights. 
             if select_mirror:
                 self.selectMirror(prev_mode, ob)
             
@@ -2073,6 +2089,157 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
         self.report({'INFO'}, reportString)
         return {'FINISHED'}
         
+#Copies properties from one object to another. If Duplicate Object is missing properties, it will ignore it.
+def copyAttributes(object, object_duplicate):
+    attributes = []
+    bruh = []
+    ignore = ('bl_rna', 'rna_type')
+    missing = []
+    #For loop to only get the attributes I made, not the default python and blender ones
+    for i in dir(object):
+        if i.startswith('__') == False and (i not in ignore):
+            attributes.append(i)
+        else:
+            bruh.append(i)
+            
+    print("bruh: %s" % (str(bruh) ) )
+    print("attributes: %s" % (str(attributes) ) )
+    
+    for i in attributes:
+        if hasattr(object_duplicate, i):
+            original_attr = getattr(object, i)
+            setattr(object_duplicate, i, original_attr)
+        else:
+            missing.append(i)
+    
+    #Prints the missing attributes for debugging
+    if len(missing) > 0:
+        class_name = object_duplicate.__class__.__name__
+        print("%s missing %d attributes: %s" % (class_name, len(missing), str(missing) ) )
+
+def UI_Functions(collection, UI_Index, type):
+    #collection is for ex. props.strings
+    #UI_Index is the index of active UI list element
+    col = collection
+    #gets the last index of list
+    list_length = len(col)-1
+    print("UI_Index[1]: %d" % (UI_Index) )
+    
+    if type == "ADD":
+        col.add()
+        UI_Index = len(col)-1
+        #if len(col)
+        
+    elif type == "REMOVE":
+        col.remove(UI_Index)
+        if UI_Index >= list_length:
+            UI_Index -= 1
+        
+    elif type == "UP":
+        if UI_Index != 0:
+            col.move(UI_Index, UI_Index-1)
+            UI_Index -= 1
+        else:
+            col.move(UI_Index, list_length)
+            UI_Index = list_length
+            
+    elif type == "DOWN":
+        if UI_Index != list_length:
+            col.move(UI_Index, UI_Index+1)
+            UI_Index += 1
+        else:
+            col.move(UI_Index, 0)
+            UI_Index = 0
+    elif type == "DUPLICATE":
+        if list_length >= 0:
+            duplicate = col.add()
+            copyAttributes(col[UI_Index], duplicate)
+            
+        
+    print("UI_Index[1]: %d" % (UI_Index) )
+    return int(UI_Index)
+
+class REGEX_SCANNER_OT_General_UIOps(bpy.types.Operator):
+    bl_idname = "regex_scanner.general_ui_ops"
+    bl_label = "General UI List Operators/Functions"
+    bl_description = "For adding, removing and moving up/down list elements"
+    bl_options = {'UNDO',}
+    type: bpy.props.StringProperty(default="DEFAULT")
+    collection: bpy.props.StringProperty(default="DEFAULT")
+    list_index: bpy.props.StringProperty(default="DEFAULT")
+    #include: bpy.props.BoolProperty(default=False)
+    #mirror: bpy.props.BoolProperty(default=False)
+    #sub: bpy.props.StringProperty(default="DEFAULT")
+    #index: bpy.props.IntProperty(default=0, min=0)
+    
+    #Resets default settings
+    #@classmethod
+    @staticmethod
+    def resetSelf(self):
+        self.type = "DEFAULT"
+        self.collection = "DEFAULT"
+        self.list_index = "DEFAULT"
+        print("Reset States: %s, %s, %s" % (self.type, self.collection, self.list_index) )
+        #return None
+        
+    def __init__(self):
+        print("Start")
+
+    def __del__(self):
+        print("End")
+    
+    @classmethod
+    def poll(cls, context):
+        #return cls.collection != "DEFAULT"
+        #print("cls.collection: %s" % (str(cls.collection)) )
+        #return collection != "DEFAULT"
+        return True
+    
+    #Use for later
+    #Checks if object has attribute and returns it, else returns None
+    def returnAttribute(self, object, attributeString):
+        if hasattr(object, attributeString):
+            return getattr(object, attributeString)
+        else:
+            return None
+    
+    def execute(self, context):
+        scene = bpy.context.scene
+        #context = bpy.context
+        data = context.object.data
+        props = scene.RS_Props
+        #print("" % () )
+        vg = bpy.context.object.vertex_groups
+        vg_active = vg.active
+        
+        reportString = "Done!"
+        
+        collection = self.returnAttribute(props, self.collection)
+        UI_Index = self.returnAttribute(props, self.list_index)
+        
+        if collection != None:
+            #Need != None, as "if" returns False if number is "0"
+            if UI_Index != None:
+                #props.RS_ULIndex_ReGex = UI_Functions(self.collection, self.list_index, self.type)
+                
+                print("UI_Index[1]: %d" % (UI_Index) )
+                #getattr(props, self.list_index) = UI_Functions(collection, UI_Index, self.type)
+                #UI_Index = UI_Functions(collection, UI_Index, self.type)
+                setattr(props, self.list_index, UI_Functions(collection, UI_Index, self.type) )
+                print("UI_Index[2]: %d" % (UI_Index) )
+            else:
+                print("UI_Index[3]: %d" % (UI_Index) )
+                reportString = "List_Index given wasn't found in scene.RS_Props"
+        else:
+            reportString = "Collection given wasn't found in scene.RS_Props"
+        #Resets default settings
+        #self.resetSelf()
+        self.resetSelf(self)
+        
+        print(reportString)
+        self.report({'INFO'}, reportString)
+        return {'FINISHED'}
+        
 class RIG_DEBUGGER_OT_VertexGroup_UIOps(bpy.types.Operator):
     bl_idname = "rig_debugger.vertex_group_ui_ops"
     bl_label = "Custom Vertex Group Operators"
@@ -2129,8 +2296,11 @@ class RIG_DEBUGGER_OT_VertexGroup_UIOps(bpy.types.Operator):
         vg = bpy.context.object.vertex_groups
         vg_active = vg.active
         
+        UI_Index = props.RD_ULIndex
+        
         reportString = "Done!"
         
+        #Takes active vertex group, and object's vertex groups
         def groupExists(vg_active, groups):
             #groups = props.vertex_groups
             for i in groups:
@@ -2141,14 +2311,16 @@ class RIG_DEBUGGER_OT_VertexGroup_UIOps(bpy.types.Operator):
         
         #Creates animation_data if there isn't none
         if self.type == "ADD":
-            
+            #Checks if object has Vertex Groups to select from
             if len(context.object.vertex_groups) > 0:
                 
                 #bpy.context.object.vertex_groups.active.name
                 #bpy.context.object.vertex_groups.active_index
                 
                 if groupExists(vg_active, props.vertex_groups) == False:
-                    
+                    #UI_Functions(collection, UI_Index, type)
+                    #copyAttributes(object, object_duplicate)
+                    #setattr(props, self.list_index, UI_Functions(collection, UI_Index, self.type) )
                     group_new = props.vertex_groups.add()
                     group_new.name = vg_active.name
                     group_new.index = vg_active.index
@@ -2160,11 +2332,13 @@ class RIG_DEBUGGER_OT_VertexGroup_UIOps(bpy.types.Operator):
                     reportString = "Vertex Group: \"%s\" already added " % (vg_active.name)
             
         elif self.type == "REMOVE":
-            if len(props.vertex_groups) > 0:
-                props.vertex_groups.remove(props.RD_ULIndex )
-                
-                if props.RD_ULIndex >= len(props.vertex_groups):
-                    props.RD_ULIndex = len(props.vertex_groups)-1
+            props.RD_ULIndex = UI_Functions(props.vertex_groups, UI_Index, self.type)
+            
+        elif self.type == "UP":
+            props.RD_ULIndex = UI_Functions(props.vertex_groups, UI_Index, self.type)
+            
+        elif self.type == "DOWN":
+            props.RD_ULIndex = UI_Functions(props.vertex_groups, UI_Index, self.type)
         #Resets default settings
         #self.resetSelf()
         self.resetSelf(self)
@@ -2258,6 +2432,16 @@ class RIG_DEBUGGER_WEIGHTGROUPS_UL_items(bpy.types.UIList):
     def invoke(self, context, event):
         pass
 
+#This is for being able to set multiple attributes of operators in a single line, with a dictionary. In order to reduce the lines used/repeated
+def setAttributes(object, dictionary):
+    #dictionary should be attribute name and what to set its value
+    #dictionary = {"type": "ADD", }
+    for i in dictionary:
+        if hasattr(object, i):
+            setattr(object, i, dictionary[i])
+            
+    return None
+
 class RIG_DEBUGGER_PT_CustomPanel1(bpy.types.Panel):
     #A Custom Panel in Viewport
     bl_idname = "RIG_DEBUGGER_PT_CustomPanel1"
@@ -2310,8 +2494,10 @@ class RIG_DEBUGGER_PT_CustomPanel1(bpy.types.Panel):
         
         col.separator()
         
+        """
         row = col.row(align=True)
         row.prop(props, "debug_mode", text="Debug Panels", icon="DECORATE_OVERRIDE")
+        #"""
         
         #End of CustomPanel
         
@@ -2591,6 +2777,14 @@ class VertexGroupsOpsDraw:
         button = row.operator("rig_debugger.vertex_group_ui_ops", text="", icon="X")
         button.type = "REMOVE"
         
+        row = col.row(align=True)
+        button = row.operator("rig_debugger.vertex_group_ui_ops", text="", icon="TRIA_UP")
+        button.type = "UP"
+        
+        row = col.row(align=True)
+        button = row.operator("rig_debugger.vertex_group_ui_ops", text="", icon="TRIA_DOWN")
+        button.type = "DOWN"
+        
         #Reset the col to column
         col = layout.column()
         
@@ -2697,14 +2891,15 @@ class RIG_DEBUGGER_WeightGroups(bpy.types.PropertyGroup):
     index: bpy.props.IntProperty(name="Int", description="", default= 0, min=0)
     use: bpy.props.BoolProperty(name="Use for calculation", description="Toggle if this Vertex Group will be used in caclulation", default=True)
     
+"""
 def registerDebugPanelClasses(self, context):
-    """
+    
     print("self: %s, class: %s" % (self, self.__class__) )
     print("dir: %s" % (str(dir(self)) ) )
     print("dir.__class__: %s" % (str(dir(self.__class__)) ) )
     print("self.__class__.__name__: %s" % (str(self.__class__.__name__) ) )
     print("context: %s" % (context) )
-    #"""
+    
     propertyClassName = self.__class__.__name__
     
     attributeName = "debug_mode"
@@ -2717,7 +2912,8 @@ def registerDebugPanelClasses(self, context):
         
         if mode == False:
             if hasattr(bpy.types, registerClassName) == True:
-                bpy.utils.unregister_class(bpy.types.RIG_DEBUGGER_PT_CustomPanel1_Debug)
+                #bpy.utils.unregister_class(bpy.types.RIG_DEBUGGER_PT_CustomPanel1_Debug)
+                bpy.utils.unregister_class(RIG_DEBUGGER_PT_CustomPanel1_Debug)
                 print("Unregistered: %s" % (registerClassName) )
             else:
                 print("Already UnRegistered: %s" % (registerClassName) )
@@ -2733,6 +2929,7 @@ def registerDebugPanelClasses(self, context):
         print("Class: %s missing attribute %s" % (propertyClassName, attributeName) )
     
     return None
+#"""
     
 class RIG_DEBUGGER_Props(bpy.types.PropertyGroup):
     #Tries to set collection_parent's default to Master Collection
@@ -2768,13 +2965,17 @@ class RIG_DEBUGGER_Props(bpy.types.PropertyGroup):
     
     vertex_group_weight: bpy.props.FloatProperty(name="Vertex Group Weight", description="To set the weight", default= 0.0, min=0.0, max=1.0)
     
-    include_mirror_selection: bpy.props.BoolProperty(name="Include Mirrored Vertices", description="Also Mirror the selection of the Weights", default=False)
+    include_mirror_selection: bpy.props.BoolProperty(name="Include Mirrored Selection", description="Also Mirror the selection of the Vertexes. And therefore, also the Weights", default=False)
+    
+    enforce_direction: bpy.props.BoolProperty(name="Effect Vertex Groups from Direction", description="Toggle to select only from Vertex Groups in a direction", default=True)
+    
+    direction: bpy.props.EnumProperty(name="Direction", items= [("LEFT", "Left", inclusion_desc[0]), ("RIGHT", "Right", inclusion_desc[1])], description="Inclusion mode of influencing Vertex Groups", default="LEFT")
     
     #For rig_debugger.vertex_group_ops BOTTOM
     
     
     
-    debug_mode: bpy.props.BoolProperty(name="Display Debug Operators", description="To aid in Debugging Operators. Displayed in \"Display Settings\"", default=True, update=registerDebugPanelClasses)
+    debug_mode: bpy.props.BoolProperty(name="Display Debug Operators", description="To aid in Debugging Operators. Displayed in \"Display Settings\"", default=True)#, update=registerDebugPanelClasses)
     
     #For Iterate Collection Settings and Operators
     
@@ -2794,6 +2995,8 @@ classes = (
     RIG_DEBUGGER_OT_VertexGroup_Ops,
     RIG_DEBUGGER_OT_VertexGroupInfluence,
     #RIG_DEBUGGER_OT_UIOperators,
+    REGEX_SCANNER_OT_General_UIOps,
+    
     RIG_DEBUGGER_OT_VertexGroup_UIOps,
     
     #RIG_DEBUGGER_UL_items,
@@ -2819,21 +3022,46 @@ classes = (
 
 def register():
     #ut = bpy.utils
-    from bpy.utils import register_class
+    #from bpy.utils import register_class
     for cls in classes:
-        register_class(cls)
-        print("Class Name: %s" % (cls.__name__) )
+        #"""
+        bpy.utils.register_class(cls)
+        print("Registered: %s" % (cls.__name__) )
+        #"""
+        """
+        #Checks if the class is registered to unregister
+        if hasattr(bpy.types, cls.__name__ ) == False:
+            bpy.utils.register_class(cls)
+            print("Class Name: %s" % (cls.__name__) )
+        else:
+            print("Already registered: %s" % (str(cls.__name__)) )
+        #"""
     
     #bpy.types.Scene.IM_Collections = bpy.props.CollectionProperty(type=REF_IMAGEAID_Collections)
     bpy.types.Scene.RD_Props = bpy.props.PointerProperty(type=RIG_DEBUGGER_Props)
     
 def unregister():
     #ut = bpy.utils
-    from bpy.utils import unregister_class
-    for cls in reversed(classes):
-        unregister_class(cls)
-    
+    #from bpy.utils import unregister_class
     del bpy.types.Scene.RD_Props
+    
+    print("Reversed Classes: %s" % (str(list(reversed(classes))) ) )
+    for cls in reversed(classes):
+        #"""
+        bpy.utils.unregister_class(cls)
+        print("Unregistered: %s" % (str(cls.__name__)) )
+        #"""
+        """
+        #Checks if the class is registered to unregister
+        if hasattr(bpy.types, cls.__name__ ) == True:
+            bpy.utils.unregister_class(cls)
+            print("Unregistered: %s" % (str(cls.__name__)) )
+            #print("Unregistered: %s" % (str(cls)) )
+        else:
+            print("Already unregistered: %s" % (str(cls.__name__)) )
+        #"""
+    
+    
     
 if __name__ == "__main__":
     register()
