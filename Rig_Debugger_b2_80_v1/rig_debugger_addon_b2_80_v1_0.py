@@ -1848,6 +1848,7 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
     type: bpy.props.StringProperty(default="DEFAULT")
     include: bpy.props.BoolProperty(default=False)
     mirror: bpy.props.BoolProperty(default=False)
+    direction: bpy.props.StringProperty(default="LEFT")
     #sub: bpy.props.StringProperty(default="DEFAULT")
     #index: bpy.props.IntProperty(default=0, min=0)
     
@@ -1858,7 +1859,8 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
         self.type = "DEFAULT"
         self.include = False
         self.mirror = False
-        print("Reset States: %s, %d, %d" % (self.type, self.include, self.mirror) )
+        self.direction = "LEFT"
+        #print("Reset States: %s, %d, %d, %s" % (self.type, self.include, self.direction ) )
         #return None
     
     #This function will check to change/reset the previous mode of the object for operator to work
@@ -1990,6 +1992,8 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
             #Sets "LEFT" or "RIGHT" to "l" or "r" to compare with getDirection()
             dir = direction[0].lower()
             
+            #Remove this after
+            """
             #If you want vertex_groups from a specific direction
             if enforce_direction == True:
                 for i in vertex_group_index_list:
@@ -2026,9 +2030,116 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
                             vertex_group_index_list_new.append(i)
                 else:
                     vertex_group_index_list = vertex_group_index_list_new
+            #"""
+                    
+            
+            for i in vertex_group_index_list:
+                #Gets name of vertex_group
+                vert_grp_name = ob.vertex_groups[i].name
+                
+                #vert_grp_dir = getDirectionRegEx(vert_grp_name, type="STRING")[0].lower()
+                vert_grp_dir = getDirection(vert_grp_name)
+                #matchString = vert_grp_dir.group(0)[0].lower()
+                print("vert_grp_dir: %s" % (vert_grp_dir) )
+                #print("vert_grp_dir: %s" % (matchString) )
+                #if enforce_direction == True:
+                
+                #If you want vertex_groups from a specific direction
+                if enforce_direction == True:
+                    #If you want to exclude nonsided vertex_groups. ex. "Hips"
+                    if exclude_non_sides == True:
+                        if vert_grp_dir == dir:
+                            vertex_group_index_list_new.append(i)
+                    else:
+                        #Checks if its None, since that is what getDirectionRegEx() returns if no side match is found
+                        if vert_grp_dir == dir or vert_grp_dir == "":
+                            vertex_group_index_list_new.append(i)
+                else:
+                    #If you want to exclude nonsided vertex_groups. ex. "Hips"
+                    if exclude_non_sides == True:
+                        #Checks if it is a side
+                        if vert_grp_dir != "":
+                            vertex_group_index_list_new.append(i)
+                    #No need to continue in the for loop, since this would just return the same list
+                    else:
+                        vertex_group_index_list = vertex_group_index_list_new
+                        break
                     
                     
             return vertex_group_index_list_new
+            
+        #Note, performance of function is super slow, since it uses Blender's operators. Need a copyVertexGroup() function for better performance
+        #This function returns None
+        def mirrorVerGrps(object, vertex_group_index_list, direction):
+            ob = object
+            vertex_group_name_list = []
+            
+            flipped_list = []
+            deleted_list = []
+            
+            #Sets "LEFT" or "RIGHT" to "l" or "r" to compare with getDirection()
+            dir = direction[0].lower()
+            
+            #Will reset the index to this Vertex Group, since it will change.
+            prev_index_UI = ob.vertex_groups.active.index
+            
+            for i in vertex_group_index_list:
+                vert_grp_name = ob.vertex_groups[i].name
+                vertex_group_name_list.append(vert_grp_name)
+            
+            for i in vertex_group_name_list:
+                #Gets name of vertex_group
+                #vert_grp_name = ob.vertex_groups[i].name
+                #vert_grp_name = i
+                
+                #vert_grp_dir = getDirectionRegEx(vert_grp_name, type="STRING")[0].lower()
+                #vert_grp_dir = getDirection(vert_grp_name)
+                vert_grp_flip = flipNames(i)
+                
+                #Checks if the name is flippable
+                if vert_grp_flip != None:
+                    flipped_list.append(vert_grp_flip)
+                    #matchString = vert_grp_dir.group(0)[0].lower()
+                    
+                    #Index of Vertex Group to use the .vertex_group_copy() operator
+                    prev_index = ob.vertex_groups[i].index
+                    #If there was an existing flipped Vertex Group, save its index to move the new one here again
+                    prev_index_flip = None
+                    
+                    if vert_grp_flip in ob.vertex_groups:
+                        #prev_index_flip = ob.vertex_groups[vert_grp_flip].index
+                        deleted_list.append(vert_grp_flip)
+                        #del ob.vertex_groups[vert_grp_flip]
+                        ob.vertex_groups.remove(ob.vertex_groups[vert_grp_flip] )
+                    
+                    print("vert_grp_flip: %s; Prev_Index_Flip: %s" % (vert_grp_flip, str(prev_index_flip) ) )
+                    
+                    #new_vert_grp = ob.vertex_groups.new(name=vert_grp_name)
+                    ob.vertex_groups.active_index = prev_index
+                    
+                    #This operator copies a Vertex Group and moves the active index to the last
+                    bpy.ops.object.vertex_group_copy()
+                    new_vert_grp = ob.vertex_groups.active
+                    
+                    #Mirrors the new active vertex group, which is the new_vert_grp
+                    bpy.ops.object.vertex_group_mirror(use_topology=False)
+                    
+                    new_vert_grp.name = vert_grp_flip
+                    
+                    #You can't change the Vertex Group .index for some reason
+                    """
+                    if prev_index_flip != None:
+                        new_vert_grp.index = prev_index_flip
+                    #"""
+            
+            #After for loop
+            ob.vertex_groups.active_index = prev_index_UI
+            
+            print("Flipped: %s" % (flipped_list) )
+            print("Deleted: %d; %s" % (len(deleted_list), deleted_list) )
+            
+            return None
+        
             
         #Creates a dictionary of Vertex Group indexes, to use for Statistical purposes
         def createVerGpsDictStats(vertex_group_index_list):
@@ -2139,6 +2250,18 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
                 
             else:
                 reportString = "Object \"%s\" has no Vertex Groups" % (ob.name)
+            
+        elif self.type == "MIRROR_VERTEX_GROUPS":
+            direction = str(self.direction)
+            
+            #index list of props.vertex_groups to compare to object vertex_groups
+            vg_props = getVerGpsProps(props.vertex_groups, ob)
+            
+            #gets list of vertex groups from a direction
+            vg_props = getVerGpsFromDirection(ob, vg_props, direction, True, True)
+            
+            #Mirrors vertex groups
+            mirrorVerGrps(ob, vg_props, direction)
             
         """
         elif self.type == "REMOVE":
@@ -2814,6 +2937,13 @@ class VertexGroupsOpsDraw:
         row = col.row(align=True)
         button = row.operator("rig_debugger.vertex_group_influence", text="From Vertex Selection", icon="RESTRICT_SELECT_OFF")
         button.type = "FROM_SELECTION"
+        
+        row = col.row(align=True)
+        button = row.operator("rig_debugger.vertex_group_influence", text="Mirror Vertex Groups LEFT", icon="MOD_MIRROR")
+        button.type = "MIRROR_VERTEX_GROUPS"
+        button.direction = "LEFT"
+        
+        
         
         col.separator()
         
