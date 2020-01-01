@@ -2141,14 +2141,18 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
             return None
         
             
-        #Creates a dictionary of Vertex Group indexes, to use for Statistical purposes
-        def createVerGpsDictStats(vertex_group_index_list):
+        #Creates a dictionary of Vertex Group names from their indexes, to use for Statistical purposes
+        def createVerGpsDictStats(vertex_group_index_list, object):
+            ob = object
             dict = {}
             
             for i in vertex_group_index_list:
-                dict[i] = {}
+                group_name = ob.vertex_groups[i].name
+                #dict[i] = {}
+                dict[group_name] = {}
                 #For the number of vertices in the Vertex Group
-                dict[i]["verts"] = 0
+                #dict[i]["verts"] = 0
+                dict[group_name]["verts"] = 0
                     
             return dict
             
@@ -2188,6 +2192,7 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
             
             #index list of props.vertex_groups to compare to object vertex_groups
             vg_props = getVerGpsProps(props.vertex_groups, ob)
+            print("vg_props[%d]: %s" % (len(vg_props), str(vg_props) ) )
             
             if props.enforce_direction == True or props.exclude_non_sides == True:
                 vg_props = getVerGpsFromDirection(ob, vg_props, direction, props.exclude_non_sides, props.enforce_direction)
@@ -2201,9 +2206,9 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
             #getVerGpsFromDirection(object, vertex_group_index_list, direction, exclude_non_sides=False, enforce_direction=False)
             
             #Note: This return is for Testing
-            return {'FINISHED'}
+            ##return {'FINISHED'}
             #dictionary used for statsistics of Vertex Groups and Vertices affected
-            vg_stats = createVerGpsDictStats(vg_props)
+            vg_stats = createVerGpsDictStats(vg_props, ob)
             
             #If the object has at least 1 vertex group
             if len(context.object.vertex_groups) > 0:
@@ -2220,17 +2225,34 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
                                 
                                 #For every Vertex Group of Vertex
                                 for j in ob.data.vertices[i].groups:
+                                    #Won't affect vertices that aren't part of the group. Ex. The "0" influence ones
                                     if j.group in vg_props:
+                                        group_name = ob.vertex_groups[j.group].name
                                         #You need a function to print out the stats, this isn't implemented yet though.
-                                        vg_stats[j.group]["verts"] += 1
+                                        vg_stats[group_name]["verts"] += 1
                                         
                                         groups_in.append(j.group)
+                                        #groups_in.append(group_name)
                                         #ob.data.vertices[i]
-                                        print("Vertex: %d" % (i) )
+                                        #print("Vertex: %d" % (i) )
+                                        
                                         #ob.vertex_groups[j.group].add(i, vg_weight, 'REPLACE')
                                         #bruh = [i]
                                         ob.vertex_groups[j.group].add(bruh, vg_weight, 'REPLACE')
-                                #"""
+                                    else:
+                                        pass
+                                        
+                                #list of Vertex Groups the Vertex isn't part of
+                                groups_need = createVerGpsNeeded(groups_in, vg_props)
+                                
+                                #Adds Vertex Groups the Vertex still needs to apply a weight value
+                                for m in groups_need:
+                                    #vg_new = ob.vertex_groups.new(name=ob.vertex_groups[m].name)
+                                    vg_new = ob.vertex_groups[m]
+                                    vg_new.add(bruh, vg_weight, 'ADD')
+                                    
+                                #This was here before, and dumb since it was adding 100+ new vertex groups, not assigning existing to the vertex
+                                """
                                 #list of Vertex Groups the Vertex isn't part of
                                 groups_need = createVerGpsNeeded(groups_in, vg_props)
                                 
@@ -2238,6 +2260,12 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
                                 for m in groups_need:
                                     vg_new = ob.vertex_groups.new(name=ob.vertex_groups[m].name)
                                     vg_new.add(bruh, vg_weight, 'REPLACE')
+                                #"""
+                        
+                        #Prints stats
+                        for i in vg_stats:
+                            print(i)
+                            print("Vertex Group: %s, Vertexes in: %d" % (i, vg_stats[i]["verts"]) )
                         
                     else:
                         reportString = "INCLUDE: 0 Vertex Groups"
@@ -2254,6 +2282,14 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
         elif self.type == "MIRROR_VERTEX_GROUPS":
             direction = str(self.direction)
             
+            ##
+            #previous mode
+            prev_mode = context.object.mode
+            #previous_mode(self, prev_mode, context, before=True)
+            self.previous_mode(prev_mode, ob, before=True)
+            print("previous_mode[0]: %s" % (prev_mode) )
+            ##
+            
             #index list of props.vertex_groups to compare to object vertex_groups
             vg_props = getVerGpsProps(props.vertex_groups, ob)
             
@@ -2262,6 +2298,9 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
             
             #Mirrors vertex groups
             mirrorVerGrps(ob, vg_props, direction)
+            
+            self.previous_mode(prev_mode, ob, before=False)
+            print("previous_mode[1]: %s" % (prev_mode) )
             
         """
         elif self.type == "REMOVE":
@@ -2923,6 +2962,11 @@ class VertexGroupsOpsDraw:
         
         #Layout Starts
         col = layout.column()
+        
+        row = col.row(align=True)
+        row.label(text="Vertex Groups: %d" % (len(ob.vertex_groups)) )
+        
+        col.separator()
         
         row = col.row(align=True)
         row.label(text="Create Vertex Groups:")
