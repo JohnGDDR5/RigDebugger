@@ -83,18 +83,6 @@ def objectIcon(object):
                 
     return icon
 
-"""
-def RegExVariables:
-    pattern = '(?<=[ \.\-_])[rRlL]((?=$|[ \.\-_])|(?i)(ight|eft))'
-    
-    #print("pattern: %s" % (pattern) )
-    rawString = r'%s' % (pattern)
-    
-    #print("rawString: %s" % (rawString) )
-    
-    #compiled RegEx object
-    regex = re.compile(rawString)
-#"""
 
 #Will return match object or None if string wasn't found. Ex. "RiGhT"
 def getDirectionRegEx(string, type=None):
@@ -230,7 +218,7 @@ def flipNames(string):
         
 class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
     bl_idname = "rig_debugger.debug"
-    bl_label = "Iterate Objects Debugging Operators"
+    bl_label = "Rig and Driver Debugging Operators"
     bl_description = "To assist with debugging and development"
     bl_options = {'UNDO',}
     type: bpy.props.StringProperty(default="DEFAULT")
@@ -527,8 +515,8 @@ class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
         
 class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
     bl_idname = "rig_debugger.driver_mirror"
-    bl_label = "Iterate Objects Debugging Operators"
-    bl_description = "To assist with debugging and development"
+    bl_label = "Mirror Driver Operators"
+    bl_description = "To mirror drivers from directions Left and Right."
     bl_options = {'UNDO',}
     type: bpy.props.StringProperty(default="DEFAULT")
     sub: bpy.props.StringProperty(default="DEFAULT")
@@ -921,8 +909,8 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
         
 class RIG_DEBUGGER_OT_DriverOps(bpy.types.Operator):
     bl_idname = "rig_debugger.driver_ops"
-    bl_label = "Iterate Objects Debugging Operators"
-    bl_description = "To assist with debugging and development"
+    bl_label = "Driver Operators"
+    bl_description = "For selecting, mirroring, and printing drivers to console."
     bl_options = {'UNDO',}
     type: bpy.props.StringProperty(default="DEFAULT")
     sub: bpy.props.StringProperty(default="DEFAULT")
@@ -1652,8 +1640,8 @@ class RIG_DEBUGGER_OT_DriverOps(bpy.types.Operator):
         
 class RIG_DEBUGGER_OT_DriverExtrapolation(bpy.types.Operator):
     bl_idname = "rig_debugger.driver_extrapolation"
-    bl_label = "Iterate Objects Debugging Operators"
-    bl_description = "To assist with debugging and development"
+    bl_label = "Chnage Driver Extrapolation"
+    bl_description = "Changes the Extrapolation mode of Drivers"
     bl_options = {'UNDO',}
     type: bpy.props.StringProperty(default="DEFAULT")
     #sub: bpy.props.StringProperty(default="DEFAULT")
@@ -1960,12 +1948,18 @@ def createVerGpsDictStats(vertex_group_index_list, object):
 def printVerGpsDictStats(vg_stats_dict):
     vg_stats = vg_stats_dict
     
+    print("{0:<20}: {1:}".format("Vertex Groups", "Vertexes") )
     for i in vg_stats["vertex_groups"]:
         #print(i)
-        print("Vertex Group: %s, Vertexes in: %d" % (i, vg_stats["vertex_groups"][i]["verts"]) )
+        #print("Vertex Group: %s, Vertexes in: %d" % (i, vg_stats["vertex_groups"][i]["verts"]) )
+        print("{0:<20}: {1:d}".format(i, vg_stats["vertex_groups"][i]["verts"]) )
         
-    for i in vg_stats["count"]:
-        print("Vertex Group Count[%s], Vertexes in: %d" % (i, vg_stats["count"][i]) )
+    print("\n{0:<20}: {1:}".format("Vertexe\'s Groups Count", "Vertexes") )
+    for i in sorted(vg_stats["count"]):
+        #print("Vertex Group Count[%s], Vertexes in: %d" % (i, vg_stats["count"][i]) )
+        #print("{0:<10}: {1:d}".format(" %d Groups" % (i), vg_stats["count"][i]) )
+        print(" %2d Groups: %d" % (i, vg_stats["count"][i]) )
+        #print("Vertex Group Count {0:>20d}, Vertexes in: {2:d}".format(i, vg_stats["count"][i]) )
         
     return None
     
@@ -1985,8 +1979,8 @@ def createVerGpsNeeded(groups_in, vg_props):
 
 class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
     bl_idname = "rig_debugger.vertex_group_influence"
-    bl_label = "Changes the weight of multiple Vertex Groups based on selected vertices"
-    bl_description = "To assist with debugging and development"
+    bl_label = "Apply Weight To Selected Vertices in Selected Vertex Groups"
+    bl_description = "Changes the weight of multiple Vertex Groups based on selected vertices"
     bl_options = {'UNDO',}
     type: bpy.props.StringProperty(default="DEFAULT")
     include: bpy.props.BoolProperty(default=False)
@@ -2005,37 +1999,6 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
         self.direction = "LEFT"
         #print("Reset States: %s, %d, %d, %s" % (self.type, self.include, self.direction ) )
         #return None
-        
-    """
-    #This function will check to change/reset the previous mode of the object for operator to work
-    def previous_mode(self, prev_mode, object, before=True):
-        #sets string prev_mode
-        #ob = context.object
-        print("prev_mode1: %s" % (prev_mode) )
-        ob = object
-        #prev_mode = ob.mode
-        mode_to_set = 'OBJECT'
-        
-        #This checks to see if this is before the operator starts or after to reset the previous object mode
-        if before == True:
-            if prev_mode != mode_to_set:
-                #prev_mode = ob.mode
-                bpy.ops.object.mode_set(mode = mode_to_set)
-                debug = "Changed Mode 2 \"%s\" to \"%s\" " % (prev_mode, mode_to_set)
-            else:
-                debug = "previous_mode() 2 nothing happened"
-        else:
-            if prev_mode != mode_to_set:
-                #prev_mode = ob.mode
-                bpy.ops.object.mode_set(mode = prev_mode)
-                debug = "Changed Mode 3 \"%s\" to \"%s\" " % (mode_to_set, prev_mode)
-            else:
-                debug = "previous_mode() 3 nothing happened"
-        
-        print(debug)
-        #print("prev_mode4: %s" % (ob.mode) )
-        return None#prev_mode
-    #"""
     
     #Goes to EDIT mode for .select_mirror() poll context, to select the mirror vertices of Mesh Object
     def selectMirrorVertices(self, prev_mode, object):
@@ -2097,7 +2060,7 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
         if self.type == "FROM_SELECTION":
             #previous mode
             prev_mode = context.object.mode
-            #print("prev_mode1: %s" % (prev_mode) )
+            
             #Either EXCLUDE or INCLUDE
             inclusion = props.inclusion
             vg_weight = props.vertex_group_weight
@@ -2114,25 +2077,9 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
             
             verts = getSelectedVertices(ob)
             
-            #index list of props.vertex_groups to compare to object vertex_groups
-            vg_props = getVerGpsProps(props.vertex_groups, ob)
-            print("vg_props[%d]: %s" % (len(vg_props), str(vg_props) ) )
-            
             if props.enforce_direction == True or props.exclude_non_sides == True:
                 vg_props = getVerGpsFromDirection(ob, vg_props, direction, props.exclude_non_sides, props.enforce_direction)
-                
-            name_list = []
-            for i in vg_props:
-                name_list.append(ob.vertex_groups[i].name)
-                
-            print(direction)
-            print("getVerGpsFromDirection(): %s" % (str(name_list) ) )
-            #getVerGpsFromDirection(object, vertex_group_index_list, direction, exclude_non_sides=False, enforce_direction=False)
             
-            #Note: This return is for Testing
-            ##return {'FINISHED'}
-            #dictionary used for statsistics of Vertex Groups and Vertices affected
-            vg_stats = createVerGpsDictStats(vg_props, ob)
             
             #If the object has at least 1 vertex group
             if len(context.object.vertex_groups) > 0:
@@ -2146,26 +2093,13 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
                                 groups_in = []
                                 #Need to find a better solution that having this as a list
                                 bruh = [i]
-                                #Rather than use a list, use a single tuple for perfomance. Change to list if you plan on .appending to the list
-                                #bruh = (i,)
-                                
-                                #This is for vg_stats
-                                count = len(ob.data.vertices[i].groups)
-                                if count in vg_stats["count"]:
-                                    vg_stats["count"][count] += 1
-                                else:
-                                    vg_stats["count"][count] = 1
                                 
                                 #For every Vertex Group of Vertex
                                 for j in ob.data.vertices[i].groups:
                                     #Won't affect vertices that aren't part of the group. Ex. The "0" influence ones
                                     if j.group in vg_props:
-                                        group_name = ob.vertex_groups[j.group].name
-                                        #You need a function to print out the stats, this isn't implemented yet though.
-                                        vg_stats["vertex_groups"][group_name]["verts"] += 1
                                         
                                         groups_in.append(j.group)
-                                        #groups_in.append(group_name)
                                         #ob.data.vertices[i]
                                         #print("Vertex: %d" % (i) )
                                         
@@ -2184,9 +2118,6 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
                                     vg_new = ob.vertex_groups[m]
                                     vg_new.add(bruh, vg_weight, 'ADD')
                                     
-                        #Prints stats
-                        printVerGpsDictStats(vg_stats)
-                            
                         #Enforce direction needs to be on in order to mirror from the direction used from props.direction
                         if props.enforce_direction == True:
                             #Mirrors vertex groups
@@ -2198,8 +2129,6 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
                         reportString = "INCLUDE: 0 Vertex Groups"
                 elif inclusion == "EXCLUDE":
                     reportString = "EXCLUDE: Function Option Not Implemented Yet. Nothing Happened."
-                #bpy.context.object.vertex_groups.active.name
-                #bpy.context.object.vertex_groups.active_index
                 
                 previous_mode(prev_mode, ob, before=False)
                 
@@ -2240,8 +2169,8 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
 
 class RIG_DEBUGGER_OT_VertexGroupOps(bpy.types.Operator):
     bl_idname = "rig_debugger.vertex_group_ops"
-    bl_label = "Custom Vertex Group Operators"
-    bl_description = "To assist with debugging and development"
+    bl_label = "Additional Vertex Group Operators"
+    bl_description = "To add more functions to be able to do to an Object\'s Vertex Groups"
     bl_options = {'UNDO',}
     type: bpy.props.StringProperty(default="DEFAULT")
     direction: bpy.props.StringProperty(default="DEFAULT")
@@ -2321,7 +2250,6 @@ class RIG_DEBUGGER_OT_VertexGroupOps(bpy.types.Operator):
                             else:
                                 groups_existing+=1
                                 
-                        #if groups_added > 0:
                         groups_total = groups_added + groups_existing
                         reportString = "Added %d/%d New Vertex Groups to \"%s\"" % (groups_added, groups_total, selected_object.name)
                     else:
@@ -2332,10 +2260,8 @@ class RIG_DEBUGGER_OT_VertexGroupOps(bpy.types.Operator):
             else:
                 reportString = "Only one object selected"
                 
-        #Creates animation_data if there isn't none
-        if self.type == "MIRROR_VERTEX_GROUPS":
-            print("Bruh")
-            
+        #Mirrors Vertex Groups of Object
+        elif self.type == "MIRROR_VERTEX_GROUPS":
             direction = str(self.direction)
             
             ##
@@ -2359,6 +2285,56 @@ class RIG_DEBUGGER_OT_VertexGroupOps(bpy.types.Operator):
             print("previous_mode[1]: %s" % (prev_mode) )
             
             reportString = "Mirrored Vertex Groups from: %s" % (direction)
+            
+        #Creates animation_data if there isn't none
+        elif self.type == "PRINT_VERTEX_GROUP_STATS":
+            
+            #If the object has at least 1 vertex group
+            if len(ob.vertex_groups) > 0:
+                vg_props = []
+                
+                #Builds an index list of every Vertex Groups of object
+                for i in ob.vertex_groups:
+                    vg_props.append(i.index)
+                
+                ##
+                vg_stats = createVerGpsDictStats(vg_props, ob)
+                
+                #This gets every selected Vertex of object
+                #verts = getSelectedVertices(ob)
+                verts = ob.data.vertices
+                
+                #Every selected vertex
+                for i in verts:
+                    
+                    groups_in = []
+                    #Need to find a better solution that having this as a list
+                    bruh = [i]
+                    
+                    count = len(i.groups)
+                    if count in vg_stats["count"]:
+                        vg_stats["count"][count] += 1
+                    else:
+                        vg_stats["count"][count] = 1
+                    
+                    #For every Vertex Group of Vertex
+                    for j in i.groups:
+                        #Won't affect vertices that aren't part of the group. Ex. The "0" influence ones
+                        if j.group in vg_props:
+                            group_name = ob.vertex_groups[j.group].name
+                            #You need a function to print out the stats, this isn't implemented yet though.
+                            vg_stats["vertex_groups"][group_name]["verts"] += 1
+                            
+                            groups_in.append(j.group)
+                        else:
+                            pass
+                            
+                #Prints stats
+                printVerGpsDictStats(vg_stats)
+                
+                reportString = "Printed Stats in Console"# % (ob.name)
+            else:
+                reportString = "Object \"%s\" has no Vertex Groups" % (ob.name)
         
         print(reportString)
         self.report({'INFO'}, reportString)
@@ -2368,6 +2344,140 @@ class RIG_DEBUGGER_OT_VertexGroupOps(bpy.types.Operator):
         
         return {'FINISHED'}
 
+class RIG_DEBUGGER_OT_SelectVertexGroupCount(bpy.types.Operator):
+    bl_idname = "rig_debugger.vertex_group_count_select"
+    bl_label = "Select Vertices In Number of Vertex Groups"
+    bl_description = "To select vertices affected by a certain number of Vertex Groups."
+    #'REGISTER' is for the Bottom Left panel in the 3D Viewport
+    bl_options = {'REGISTER', 'UNDO',}
+    #type: bpy.props.StringProperty(default="DEFAULT")
+    #direction: bpy.props.StringProperty(default="DEFAULT")
+    group_count: bpy.props.IntProperty(default=1, min=0)
+    deselect_previous: bpy.props.BoolProperty(default=True)
+    #mirror: bpy.props.BoolProperty(default=False)
+    #sub: bpy.props.StringProperty(default="DEFAULT")
+    #index: bpy.props.IntProperty(default=0, min=0)
+    
+    #prints before invoke
+    def __init__(self):
+        print("Start")
+    #prints after invoke
+    def __del__(self):
+        print("End")
+    
+    @classmethod
+    def poll(cls, context):
+        #The wanted object types
+        ob_types = ["MESH"]
+        
+        #if wanted object type is inside ob_types
+        return context.object.type in ob_types
+    
+    #"""
+    def invoke(self, context, event):
+        #scene = bpy.context.scene
+        scene = context.scene
+        #context = bpy.context
+        ob = context.object
+        
+        data = context.object.data
+        props = scene.RD_Props
+        
+        self.group_count = props.vertex_group_count
+        self.deselect_previous = props.deselect_previous
+        print("group_count: %d; deselect_previous: %s"% (self.group_count, self.deselect_previous) )
+        #self.check(context)
+        #return self.execute(context)
+        #wm = context.window_manager
+        #return wm.invoke_props_dialog(self)
+        return self.execute(context)
+        #return {'INTERFACE'}
+    #"""
+        
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column()
+        
+        row = col.row(align=True)
+        row.label(text="Select Vertices In:")
+        
+        row = col.row(align=True)
+        row.prop(self, "group_count", text="Vertex Groups", expand= False, icon="GROUP_VERTEX")
+        
+        row = col.row(align=True)
+        row.prop(self, "deselect_previous", text="Deselect Previous Verts", expand= True)
+    
+    def execute(self, context):
+        scene = bpy.context.scene
+        context = bpy.context
+        
+        ob = context.object
+        
+        data = context.object.data
+        props = scene.RD_Props
+        
+        vg = bpy.context.object.vertex_groups
+        vg_active = vg.active
+        
+        reportString = "Done!"
+            
+        #If the object has at least 1 vertex group
+        if len(ob.vertex_groups) > 0:
+            ##
+            #previous mode
+            prev_mode = str(context.object.mode)
+            #previous_mode(self, prev_mode, context, before=True)
+            
+            bpy.ops.object.mode_set(mode='EDIT')
+            
+            #Object needs to be in EDIT mode to deselect all vertices
+            if self.deselect_previous == True:
+                bpy.ops.mesh.select_all(action='DESELECT')
+                
+            bpy.ops.object.mode_set(mode=prev_mode)
+            
+            previous_mode(prev_mode, ob, before=True)
+            print("previous_mode[0]: %s" % (prev_mode) )
+            
+            verts = ob.data.vertices
+            selected_verts = 0
+            
+            print("Bruh OOF: Groups: %d; group_count: %d; %s" % (len(verts[0].groups), self.group_count, len(verts[0].groups) == self.group_count) )
+            
+            
+            #Every selected vertex
+            for i in verts:
+                #This is for vg_stats
+                #count = len(ob.data.vertices[i].groups)
+                count = len(i.groups)
+                
+                if count == self.group_count:
+                    i.select = True
+                    selected_verts += 1
+                else:
+                    """
+                    #Note: Blender won't deselect a vertex this way, it only allows for .select = True
+                    #Note: In order to deselect vertices, use the Blender Python BMesh module and learn its API
+                    if self.deselect_previous == True:
+                        i.select = False
+                    #"""
+                    pass
+            
+            previous_mode(prev_mode, ob, before=False)
+            print("previous_mode[1]: %s" % (prev_mode) )
+            
+            reportString = "Printed Stats in Console"# % (ob.name)
+        else:
+            reportString = "Object \"%s\" has no Vertex Groups" % (ob.name)
+                
+        
+        print(reportString)
+        self.report({'INFO'}, reportString)
+        
+        #Resets default settings
+        self.resetSelf()
+        
+        return {'FINISHED'}
 
 #Copies properties from one object to another. If Duplicate Object is missing properties, it will ignore it.
 def copyAttributes(object, object_duplicate):
@@ -2525,6 +2635,7 @@ class RIG_DEBUGGER_OT_VertexGroup_UIOps(bpy.types.Operator):
     bl_label = "Custom Vertex Group Operators"
     bl_description = "To assist with debugging and development"
     bl_options = {'UNDO',}
+    #bl_options = {"REGISTER", "UNDO",}# "PRESET"}
     type: bpy.props.StringProperty(default="DEFAULT")
     include: bpy.props.BoolProperty(default=False)
     mirror: bpy.props.BoolProperty(default=False)
@@ -2557,6 +2668,25 @@ class RIG_DEBUGGER_OT_VertexGroup_UIOps(bpy.types.Operator):
         
         #if wanted object type is inside ob_types
         return context.object.type in ob_types
+    
+    """
+    def draw(self, context):
+        layout = self.layout
+        scene = bpy.context.scene
+        data = bpy.data
+        
+        col = layout.column()
+        
+        row = col.row(align=True)
+        row.label(text="Add Selected Vertex Groups:")
+    
+    def invoke(self, context, event):
+        #self.check(context)
+        #return self.execute(context)
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+        #return {'INTERFACE'}
+    #"""
     
     def execute(self, context):
         scene = bpy.context.scene
@@ -2910,6 +3040,7 @@ class RIG_DEBUGGER_PT_CustomPanel1_Debug(bpy.types.Panel):
         row = col.row(align=True)
         row.operator("rig_debugger.debug", text="Mirror Driver Test").type = "MIRROR_DRIVER_TEST"
         
+        
         #End of CustomPanel
         
 class RIG_DEBUGGER_PT_CustomPanel2(bpy.types.Panel):
@@ -2988,17 +3119,15 @@ class RIG_DEBUGGER_PT_CustomPanel2(bpy.types.Panel):
         
         anim_data = ob.animation_data
         
-        #row = col.row(align=True)
-        
-        
-        #icon = "IPO_CONSTANT" if props.driver_extrapolation is 'CONSTANT' else "IPO_LINEAR"
-        
         row = col.row(align=True)
         row.label(text="Effect Selected Drivers:")
         
         row = col.row(align=True)
         row.operator("rig_debugger.driver_extrapolation", text="Set Extrapolation").type = "UPDATE"
         row.prop(props, "driver_extrapolation", icon="NONE", text="", emboss= True, expand= False)
+        
+        
+        #button.sub = "PROP_ALL"
         
         #End of CustomPanel
         
@@ -3321,16 +3450,22 @@ class RIG_DEBUGGER_PT_VertexGroups1_InfluenceVertGroups(bpy.types.Panel):
         row.active = bool(props.enforce_direction)
         
         col.separator()
-
-#Note: The driver editor doesn't have a use for this panel or its ops
-"""
-class RIG_DEBUGGER_PT_VertexGroups2(VertexGroupsOpsDraw, bpy.types.Panel):
-    bl_label = "Vertex Groups Ops"
-    bl_space_type = "GRAPH_EDITOR"
-    bl_region_type = 'UI'
-    #bl_context = "output"
-    bl_category = "Driver Debugger"
-#"""
+        
+        row = col.row(align=True)
+        button = row.operator("rig_debugger.vertex_group_ops", text="Print Vertex Group Stats")
+        button.type = "PRINT_VERTEX_GROUP_STATS"
+        
+        col.separator()
+        
+        row = col.row(align=True)
+        button = row.operator("rig_debugger.vertex_group_count_select", text="Select Vertices In:")
+        #button.type = "SELECT_VERTICES_WITH_GROUP_AMMOUNT"
+        
+        row = col.row(align=True)
+        row.prop(props, "vertex_group_count", text="Vertex Groups", expand=True)
+        
+        row = col.row(align=True)
+        row.prop(props, "deselect_previous", text="Deselect Previous Verts", expand=True)
 
     
 class RIG_DEBUGGER_PreferencesMenu(bpy.types.AddonPreferences):
@@ -3368,107 +3503,68 @@ class RIG_DEBUGGER_PreferencesMenu(bpy.types.AddonPreferences):
             row.operator("wm.url_open", text="Artstation").url = "https://www.artstation.com/johngddr5"
     
 
-    
+#For Custom Selected Vertex Groups List_UI_Panel and many operators to work
 class RIG_DEBUGGER_WeightGroups(bpy.types.PropertyGroup):
     name: bpy.props.StringProperty(name="", default="Name")
     index: bpy.props.IntProperty(name="Int", description="", default= 0, min=0)
     use: bpy.props.BoolProperty(name="Use for calculation", description="Toggle if this Vertex Group will be used in caclulation", default=True)
     
-"""
-def registerDebugPanelClasses(self, context):
-    
-    print("self: %s, class: %s" % (self, self.__class__) )
-    print("dir: %s" % (str(dir(self)) ) )
-    print("dir.__class__: %s" % (str(dir(self.__class__)) ) )
-    print("self.__class__.__name__: %s" % (str(self.__class__.__name__) ) )
-    print("context: %s" % (context) )
-    
-    propertyClassName = self.__class__.__name__
-    
-    attributeName = "debug_mode"
-    
-    if hasattr(self, attributeName):
-        mode = getattr(self, attributeName)
-        print("Mode: %s" % (mode) )
-        
-        registerClassName = "RIG_DEBUGGER_PT_CustomPanel1_Debug"
-        
-        if mode == False:
-            if hasattr(bpy.types, registerClassName) == True:
-                #bpy.utils.unregister_class(bpy.types.RIG_DEBUGGER_PT_CustomPanel1_Debug)
-                bpy.utils.unregister_class(RIG_DEBUGGER_PT_CustomPanel1_Debug)
-                print("Unregistered: %s" % (registerClassName) )
-            else:
-                print("Already UnRegistered: %s" % (registerClassName) )
-        else:
-            if hasattr(bpy.types, registerClassName) == False:
-                #bpy.utils.register_class(bpy.types.RIG_DEBUGGER_PT_CustomPanel1_Debug)
-                bpy.utils.register_class(RIG_DEBUGGER_PT_CustomPanel1_Debug)
-                print("Registered: %s" % (registerClassName) )
-            else:
-                print("Already Registered: %s" % (registerClassName) )
-        
-    else:
-        print("Class: %s missing attribute %s" % (propertyClassName, attributeName) )
-    
-    return None
-#"""
-    
 class RIG_DEBUGGER_Props(bpy.types.PropertyGroup):
+    ##UI Properties for Driver Editor Panels
     #Tries to set collection_parent's default to Master Collection
     override_existing_drivers: bpy.props.BoolProperty(name="Override Existing Drivers", description="Overrides the drivers of the existing flipped driver", default=False)
     
     override_existing_fcurves: bpy.props.BoolProperty(name="Override Existing F-Curves", description="Overrides the F-Curves of drivers of the existing flipped driver", default=False)
     
-    listDesc0 =  ["Displays List in order of how many duplicates each object has", "Displays List in the order they were created"]
+    desc_mirror_direction =  ["Mirror Bone Drivers From this Direction"]
     
-    mirror_direction: bpy.props.EnumProperty(name="Mirror Direction", items= [("LEFT", "Left", listDesc0[0]), ("RIGHT", "Right", listDesc0[1])], description="Bone Name Direction to Mirror Drivers from", default="LEFT")#, update=ListOrderUpdate)
+    mirror_direction: bpy.props.EnumProperty(name="Mirror Direction", items= [("LEFT", "Left", desc_mirror_direction[0]), ("RIGHT", "Right", desc_mirror_direction[0])], description="Bone Name Direction to Mirror Drivers from", default="LEFT")
     
-    driver_extrapolation: bpy.props.EnumProperty(name="Driver Extrapolation", items= [("CONSTANT", "Constant", listDesc0[1], "IPO_CONSTANT", 0), ("LINEAR", "Linear", listDesc0[0], "IPO_LINEAR", 1)], description="Extrapolation mode of Driver", default="LINEAR")
+    desc_driver_extrapolation =  ["Change Driver Extrapolation to \"Constant\" ", "Change Driver Extrapolation to \"Linear\" "]
     
+    driver_extrapolation: bpy.props.EnumProperty(name="Driver Extrapolation", items= [("CONSTANT", "Constant", desc_driver_extrapolation[0], "IPO_CONSTANT", 0), ("LINEAR", "Linear", desc_driver_extrapolation[1], "IPO_LINEAR", 1)], description="Extrapolation mode of Driver", default="LINEAR")
+    
+    
+    ##UI Properties for 3D Viewport Panels
     #Dropdown for Iterate Display
     dropdown_1: bpy.props.BoolProperty(name="Dropdown", description="Show Props of all Drivers", default=True)
     
-    dropdown_debugger: bpy.props.BoolProperty(name="Dropdown", description="Show Props of active Driver", default=True)
-    
-    #collection_active: bpy.props.PointerProperty(name="Collection to add Collections for Object duplicates", type=bpy.types.Collection)
-    
-    #Booleans for locking default collection of parent
-    
-    lock_active: bpy.props.BoolProperty(name="Lock Collection of Active", description="When locked, you can now edit the name of the selected collection", default=False)
+    #dropdown_debugger: bpy.props.BoolProperty(name="Dropdown", description="Show Props of active Driver", default=True)
     
     #For rig_debugger.vertex_group_ops TOP
     vertex_groups: bpy.props.CollectionProperty(type=RIG_DEBUGGER_WeightGroups)
     
     RD_ULIndex: bpy.props.IntProperty(name="List Index", description="UI List Index", default= 0, min=0)
     
-    inclusion_desc = ("Bruh Moment", "OOOOOOOF")
+    desc_inclusion = ("Use every Vertex Groups in Calculation, except Selected Vertex Groups", "Use only Selected Vertex Groups in Calculation")
     
-    inclusion: bpy.props.EnumProperty(name="Inclusion Type", items= [("EXCLUDE", "Exclude", inclusion_desc[0]), ("INCLUDE", "Include", inclusion_desc[1])], description="Inclusion mode of influencing Vertex Groups", default="INCLUDE")
+    inclusion: bpy.props.EnumProperty(name="Inclusion Type", items= [("EXCLUDE", "Exclude", desc_inclusion[0]), ("INCLUDE", "Include", desc_inclusion[1])], description="Inclusion mode of influencing Vertex Groups", default="INCLUDE")
     
     vertex_group_weight: bpy.props.FloatProperty(name="Vertex Group Weight", description="To set the weight", default= 0.0, min=0.0, max=1.0)
     
-    include_mirror_selection: bpy.props.BoolProperty(name="Include Mirrored Selection", description="Also Mirror the selection of the Vertexes. And therefore, also the Weights", default=False)
+    include_mirror_selection: bpy.props.BoolProperty(name="Include Mirrored Selection", description="Include the Mirror Selection of Vertices", default=False)
     
     
-    exclude_non_sides: bpy.props.BoolProperty(name="Exclude Non Sides", description="Exclude Vertex Groups that aren't from a side \"L\" or \"R\" ", default=True)
+    exclude_non_sides: bpy.props.BoolProperty(name="Exclude Non Sides", description="Exclude Vertex Groups that aren't from a side Left or Right", default=True)
     
-    enforce_direction: bpy.props.BoolProperty(name="Enforce Direction", description="Toggle to Effect only Vertex Groups in a direction. L/R", default=True)
+    enforce_direction: bpy.props.BoolProperty(name="Enforce Direction", description="Effect Vertex Groups in a single direction. Left or Right. Not both", default=True)
     
-    direction: bpy.props.EnumProperty(name="Direction", items= [("LEFT", "Left", inclusion_desc[0]), ("RIGHT", "Right", inclusion_desc[1])], description="Inclusion mode of influencing Vertex Groups", default="LEFT")
+    desc_direction = ("Mirror Vertex Groups from Left", "Mirror Vertex Groups from Right")
+    
+    direction: bpy.props.EnumProperty(name="Direction", items= [("LEFT", "Left", desc_direction[0]), ("RIGHT", "Right", desc_direction[1])], description="Inclusion mode of influencing Vertex Groups", default="LEFT")
     
     auto_mirror: bpy.props.BoolProperty(name="Auto Mirror Direction", description="Toggle to automatically mirror Vertex Groups from a chosen direction. L/R", default=True)
     
+    #For RIG_DEBUGGER_OT_SelectVertexGroupCount
+    vertex_group_count: bpy.props.IntProperty(name="Number of Vertex Groups", description="To select Vertices with a number of Vertex Groups", default= 0, min=0)
+    
+    deselect_previous: bpy.props.BoolProperty(name="Deselect Previous Vertex Groups", description="To only select the vertices selected from the operator.", default=True)
+    
     #For rig_debugger.vertex_group_ops BOTTOM
-    
-    
     
     debug_mode: bpy.props.BoolProperty(name="Display Debug Operators", description="To aid in Debugging Operators. Displayed in \"Display Settings\"", default=True)#, update=registerDebugPanelClasses)
     
     #For Iterate Collection Settings and Operators
-    
-    #hide_types_last
-    #hide_last: bpy.props.BoolProperty(name="Exclude Recent Iteration", description="When using the operators for toggling \"all objects\"", default=False)
 
     
 #Classes that are registered
@@ -3483,6 +3579,8 @@ classes = (
     
     RIG_DEBUGGER_OT_VertexGroupInfluence,
     RIG_DEBUGGER_OT_VertexGroupOps,
+    #Ops for selecting vertices with a certain number of Vertex Groups
+    RIG_DEBUGGER_OT_SelectVertexGroupCount,
     
     #RIG_DEBUGGER_OT_UIOperators,
     REGEX_SCANNER_OT_General_UIOps,
@@ -3522,14 +3620,6 @@ def register():
         bpy.utils.register_class(cls)
         print("Registered: %s" % (cls.__name__) )
         #"""
-        """
-        #Checks if the class is registered to unregister
-        if hasattr(bpy.types, cls.__name__ ) == False:
-            bpy.utils.register_class(cls)
-            print("Class Name: %s" % (cls.__name__) )
-        else:
-            print("Already registered: %s" % (str(cls.__name__)) )
-        #"""
     
     #bpy.types.Scene.IM_Collections = bpy.props.CollectionProperty(type=REF_IMAGEAID_Collections)
     bpy.types.Scene.RD_Props = bpy.props.PointerProperty(type=RIG_DEBUGGER_Props)
@@ -3544,15 +3634,6 @@ def unregister():
         #"""
         bpy.utils.unregister_class(cls)
         print("Unregistered: %s" % (str(cls.__name__)) )
-        #"""
-        """
-        #Checks if the class is registered to unregister
-        if hasattr(bpy.types, cls.__name__ ) == True:
-            bpy.utils.unregister_class(cls)
-            print("Unregistered: %s" % (str(cls.__name__)) )
-            #print("Unregistered: %s" % (str(cls)) )
-        else:
-            print("Already unregistered: %s" % (str(cls.__name__)) )
         #"""
     
     

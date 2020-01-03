@@ -15,6 +15,11 @@ if d.data_path.startswith('pose.bones'):
 #New Notes
 ##############
 
+#bl_options explained
+bl_options = {"REGISTER", "UNDO",}
+#"REGISTER" is to allow the Left-Bottom UI panel to display in the 3D-Viewport
+#"UNDO" is to allow undos
+
 for i in enumerate(bpy.data.objects['Armature.1'].animation_data.drivers):
     print("%d: Index %d" % (i[0], i[1].array_index))
 
