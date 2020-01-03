@@ -2829,7 +2829,6 @@ class REGEX_SCANNER_MT_DropdownMenu2(bpy.types.Menu):
         
         col.separator()
         
-        
         row = col.row(align=True)
         button = row.operator("rig_debugger.vertex_group_ops", text="From Left", icon="MOD_MIRROR")
         button.type = "MIRROR_VERTEX_GROUPS"
@@ -2839,6 +2838,14 @@ class REGEX_SCANNER_MT_DropdownMenu2(bpy.types.Menu):
         button = row.operator("rig_debugger.vertex_group_ops", text="From Right")#, icon="MOD_MIRROR")
         button.type = "MIRROR_VERTEX_GROUPS"
         button.direction = "RIGHT"
+        
+        col.separator()
+        
+        row = col.row(align=True)
+        row.label(text="Create Empty Vertex Groups:")
+        
+        row = col.row(align=True)
+        row.operator("rig_debugger.vertex_group_ops", text="From Bones without Groups", icon="GROUP_VERTEX").type = "CREATE_EMPTY_BONE_GROUPS"
         
         #ResButtonMenu End
 
@@ -3230,6 +3237,7 @@ class VertexGroupsOpsDraw:
         col.separator()
         #"""
         
+        """
         row = col.row(align=True)
         row.label(text="Create Empty Vertex Groups:")
         row = col.row(align=True)
@@ -3249,48 +3257,7 @@ class VertexGroupsOpsDraw:
         button.direction = "RIGHT"
         
         col.separator()
-        
-        """
-        row = col.row(align=True)
-        #row.label(text="Influence Vertex Groups:")
-        row.label(text="Apply to Selected Vertex Groups:")
-        
-        row = col.row(align=True)
-        button = row.operator("rig_debugger.vertex_group_influence", text="From Vertex Selection", icon="RESTRICT_SELECT_OFF")
-        button.type = "FROM_SELECTION"
-        
-        
-        col.separator()
-        
-        row = col.row(align=True)
-        row.prop(props, "inclusion", expand=True)
-        
-        row = col.row(align=True)
-        row.prop(props, "vertex_group_weight", expand=True)
-        
-        row = col.row(align=True)
-        row.prop(props, "include_mirror_selection", expand=True)
-        
-        col.separator()
-        
-        row = col.row(align=True)
-        row.prop(props, "exclude_non_sides", expand=True)
-        
-        row = col.row(align=True)
-        row.prop(props, "enforce_direction", expand=True)
-        
-        row = col.row(align=True)
-        row.prop(props, "direction", expand=True)
-        row.active = bool(props.enforce_direction)
-        #col.separator()
-        
-        row = col.row(align=True)
-        row.prop(props, "auto_mirror", expand=True)
-        row.active = bool(props.enforce_direction)
-        
-        col.separator()
         #"""
-        
         
         #Start of template_list UI
         row = col.row(align=True)
@@ -3395,7 +3362,8 @@ class RIG_DEBUGGER_PT_VertexGroups1(VertexGroupsOpsDraw, bpy.types.Panel):
     
 class RIG_DEBUGGER_PT_VertexGroups1_InfluenceVertGroups(bpy.types.Panel):
     bl_parent_id = "RIG_DEBUGGER_PT_VertexGroups1"
-    bl_label = "Influence Vertex Groups"
+    #bl_label = "Influence Vertex Groups"
+    bl_label = "Vertex Groups Ops"
     bl_space_type = "VIEW_3D"
     bl_region_type = 'UI'
     #bl_context = "output"
