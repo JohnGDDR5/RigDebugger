@@ -1761,22 +1761,522 @@ class RIG_DEBUGGER_OT_DriverExtrapolation(bpy.types.Operator):
         return {'FINISHED'}
         
         
-class RIG_DEBUGGER_OT_VertexGroup_Ops(bpy.types.Operator):
+##These functions are for operators TOP
+#This function will check to change/reset the previous mode of the object for operator to work
+def previous_mode(prev_mode, object, before=True):
+    #sets string prev_mode
+    #ob = context.object
+    print("prev_mode1: %s" % (prev_mode) )
+    ob = object
+    #prev_mode = ob.mode
+    mode_to_set = 'OBJECT'
+    
+    #This checks to see if this is before the operator starts or after to reset the previous object mode
+    if before == True:
+        if prev_mode != mode_to_set:
+            #prev_mode = ob.mode
+            bpy.ops.object.mode_set(mode = mode_to_set)
+            debug = "Changed Mode 2 \"%s\" to \"%s\" " % (prev_mode, mode_to_set)
+        else:
+            debug = "previous_mode() 2 nothing happened"
+    else:
+        if prev_mode != mode_to_set:
+            #prev_mode = ob.mode
+            bpy.ops.object.mode_set(mode = prev_mode)
+            debug = "Changed Mode 3 \"%s\" to \"%s\" " % (mode_to_set, prev_mode)
+        else:
+            debug = "previous_mode() 3 nothing happened"
+    
+    print(debug)
+    #print("prev_mode4: %s" % (ob.mode) )
+    return None#prev_mode
+
+#Function is only needed here, so no reason to have it out. If you do, add "self" parameter to beginning
+#Checks if vertex_group name was already added to props.vertex_groups
+def groupExists(vertex_group_active, groups):
+    #groups = props.vertex_groups
+    for i in groups:
+        if i.name == vertex_group_active.name:
+            return True
+            
+    return False
+
+#Gets all selected vertices of object and returns list of vertex indexes
+def getSelectedVertices(mesh_object):
+    ob = mesh_object
+    verts = []
+    
+    for i in ob.data.vertices:
+        if i.select == True:
+            verts.append(i.index)
+            
+    return verts
+    
+#Gets list of Vertex Groups indexes from String names in props.vertex_groups
+def getVerGpsProps(propGroup, object):
+    ob = object
+    vertex_group_index_list = []
+    
+    for i in propGroup:
+        #Checks if name is in vertex_groups
+        if i.name in ob.vertex_groups and i.use == True:
+            #Checks if it isn't a duplicate
+            if ob.vertex_groups[i.name].index not in vertex_group_index_list:
+                vertex_group_index_list.append(i.index)
+            
+    return vertex_group_index_list
+    
+#object for .vertex_groups, index list [1,3,4...], direction = "LEFT" string, exclude_non_sides = False boolean
+def getVerGpsFromDirection(object, vertex_group_index_list, direction, exclude_non_sides=False, enforce_direction=False):
+    ob = object
+    vertex_group_index_list_new = []
+    
+    #Sets "LEFT" or "RIGHT" to "l" or "r" to compare with getDirection()
+    dir = direction[0].lower()
+    
+    for i in vertex_group_index_list:
+        #Gets name of vertex_group
+        vert_grp_name = ob.vertex_groups[i].name
+        
+        #vert_grp_dir = getDirectionRegEx(vert_grp_name, type="STRING")[0].lower()
+        vert_grp_dir = getDirection(vert_grp_name)
+        #matchString = vert_grp_dir.group(0)[0].lower()
+        print("vert_grp_dir: %s" % (vert_grp_dir) )
+        #print("vert_grp_dir: %s" % (matchString) )
+        #if enforce_direction == True:
+        
+        #If you want vertex_groups from a specific direction
+        if enforce_direction == True:
+            #If you want to exclude nonsided vertex_groups. ex. "Hips"
+            if exclude_non_sides == True:
+                if vert_grp_dir == dir:
+                    vertex_group_index_list_new.append(i)
+            else:
+                #Checks if its None, since that is what getDirectionRegEx() returns if no side match is found
+                if vert_grp_dir == dir or vert_grp_dir == "":
+                    vertex_group_index_list_new.append(i)
+        else:
+            #If you want to exclude nonsided vertex_groups. ex. "Hips"
+            if exclude_non_sides == True:
+                #Checks if it is a side
+                if vert_grp_dir != "":
+                    vertex_group_index_list_new.append(i)
+            #No need to continue in the for loop, since this would just return the same list
+            else:
+                vertex_group_index_list = vertex_group_index_list_new
+                break
+            
+            
+    return vertex_group_index_list_new
+    
+#Note, performance of function is super slow, since it uses Blender's operators. Need a copyVertexGroup() function for better performance
+#This function returns None
+def mirrorVerGrps(object, vertex_group_index_list, direction):
+    ob = object
+    vertex_group_name_list = []
+    
+    flipped_list = []
+    deleted_list = []
+    
+    #Sets "LEFT" or "RIGHT" to "l" or "r" to compare with getDirection()
+    dir = direction[0].lower()
+    
+    #Will reset the index to this Vertex Group, since it will change.
+    prev_index_UI = ob.vertex_groups.active.index
+    
+    for i in vertex_group_index_list:
+        vert_grp_name = ob.vertex_groups[i].name
+        vertex_group_name_list.append(vert_grp_name)
+    
+    for i in vertex_group_name_list:
+        #Gets name of vertex_group
+        #vert_grp_name = ob.vertex_groups[i].name
+        #vert_grp_name = i
+        
+        #vert_grp_dir = getDirectionRegEx(vert_grp_name, type="STRING")[0].lower()
+        #vert_grp_dir = getDirection(vert_grp_name)
+        vert_grp_flip = flipNames(i)
+        
+        #Checks if the name is flippable
+        if vert_grp_flip != None:
+            flipped_list.append(vert_grp_flip)
+            #matchString = vert_grp_dir.group(0)[0].lower()
+            
+            #Index of Vertex Group to use the .vertex_group_copy() operator
+            prev_index = ob.vertex_groups[i].index
+            #If there was an existing flipped Vertex Group, save its index to move the new one here again
+            prev_index_flip = None
+            
+            if vert_grp_flip in ob.vertex_groups:
+                #prev_index_flip = ob.vertex_groups[vert_grp_flip].index
+                deleted_list.append(vert_grp_flip)
+                #del ob.vertex_groups[vert_grp_flip]
+                ob.vertex_groups.remove(ob.vertex_groups[vert_grp_flip] )
+            
+            print("vert_grp_flip: %s; Prev_Index_Flip: %s" % (vert_grp_flip, str(prev_index_flip) ) )
+            
+            #new_vert_grp = ob.vertex_groups.new(name=vert_grp_name)
+            ob.vertex_groups.active_index = prev_index
+            
+            #This operator copies a Vertex Group and moves the active index to the last
+            bpy.ops.object.vertex_group_copy()
+            new_vert_grp = ob.vertex_groups.active
+            
+            #Mirrors the new active vertex group, which is the new_vert_grp
+            bpy.ops.object.vertex_group_mirror(use_topology=False)
+            
+            new_vert_grp.name = vert_grp_flip
+            
+            #You can't change the Vertex Group .index for some reason
+            """
+            if prev_index_flip != None:
+                new_vert_grp.index = prev_index_flip
+            #"""
+    
+    #After for loop
+    ob.vertex_groups.active_index = prev_index_UI
+    
+    print("Flipped: %s" % (flipped_list) )
+    print("Deleted: %d; %s" % (len(deleted_list), deleted_list) )
+    
+    return None
+    
+#Creates a dictionary of Vertex Group names from their indexes, to use for Statistical purposes
+def createVerGpsDictStats(vertex_group_index_list, object):
+    ob = object
+    dict = {"vertex_groups": {}, "count": {}}
+    
+    for i in vertex_group_index_list:
+        group_name = ob.vertex_groups[i].name
+        #dict[i] = {}
+        dict["vertex_groups"][group_name] = {}
+        #For the number of vertices in the Vertex Group
+        #dict[i]["verts"] = 0
+        dict["vertex_groups"][group_name]["verts"] = 0
+            
+    return dict
+    
+#Requires dictionary built by createVerGpsDictStats()
+def printVerGpsDictStats(vg_stats_dict):
+    vg_stats = vg_stats_dict
+    
+    for i in vg_stats["vertex_groups"]:
+        #print(i)
+        print("Vertex Group: %s, Vertexes in: %d" % (i, vg_stats["vertex_groups"][i]["verts"]) )
+        
+    for i in vg_stats["count"]:
+        print("Vertex Group Count[%s], Vertexes in: %d" % (i, vg_stats["count"][i]) )
+        
+    return None
+    
+#Creates a list of Vertex Group indexes that are still needed for Vertex
+def createVerGpsNeeded(groups_in, vg_props):
+    #groups_in, an incomplete index list of Vertex Groups of vertex already from vg_props
+    #vg_props, complete index list of Vertex Groups from vg_props
+    groups_need = vg_props[::]
+    
+    for m in groups_in:
+        if m in groups_need:
+            groups_need.remove(m)
+            
+    return groups_need
+    
+##These functions are for operators BOTTOM
+
+class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
+    bl_idname = "rig_debugger.vertex_group_influence"
+    bl_label = "Changes the weight of multiple Vertex Groups based on selected vertices"
+    bl_description = "To assist with debugging and development"
+    bl_options = {'UNDO',}
+    type: bpy.props.StringProperty(default="DEFAULT")
+    include: bpy.props.BoolProperty(default=False)
+    mirror: bpy.props.BoolProperty(default=False)
+    direction: bpy.props.StringProperty(default="LEFT")
+    #sub: bpy.props.StringProperty(default="DEFAULT")
+    #index: bpy.props.IntProperty(default=0, min=0)
+    
+    #Resets default settings
+    #@classmethod
+    #@staticmethod
+    def resetSelf(self):
+        self.type = "DEFAULT"
+        self.include = False
+        self.mirror = False
+        self.direction = "LEFT"
+        #print("Reset States: %s, %d, %d, %s" % (self.type, self.include, self.direction ) )
+        #return None
+        
+    """
+    #This function will check to change/reset the previous mode of the object for operator to work
+    def previous_mode(self, prev_mode, object, before=True):
+        #sets string prev_mode
+        #ob = context.object
+        print("prev_mode1: %s" % (prev_mode) )
+        ob = object
+        #prev_mode = ob.mode
+        mode_to_set = 'OBJECT'
+        
+        #This checks to see if this is before the operator starts or after to reset the previous object mode
+        if before == True:
+            if prev_mode != mode_to_set:
+                #prev_mode = ob.mode
+                bpy.ops.object.mode_set(mode = mode_to_set)
+                debug = "Changed Mode 2 \"%s\" to \"%s\" " % (prev_mode, mode_to_set)
+            else:
+                debug = "previous_mode() 2 nothing happened"
+        else:
+            if prev_mode != mode_to_set:
+                #prev_mode = ob.mode
+                bpy.ops.object.mode_set(mode = prev_mode)
+                debug = "Changed Mode 3 \"%s\" to \"%s\" " % (mode_to_set, prev_mode)
+            else:
+                debug = "previous_mode() 3 nothing happened"
+        
+        print(debug)
+        #print("prev_mode4: %s" % (ob.mode) )
+        return None#prev_mode
+    #"""
+    
+    #Goes to EDIT mode for .select_mirror() poll context, to select the mirror vertices of Mesh Object
+    def selectMirrorVertices(self, prev_mode, object):
+        #sets string prev_mode
+        #ob = context.object
+        print("prev_mode1: %s" % (prev_mode) )
+        ob = object
+        #prev_mode = ob.mode
+        mode_to_set = 'EDIT'
+        
+        #This checks to see if this is before the operator starts or after to reset the previous object mode
+        if prev_mode != mode_to_set:
+            #prev_mode = ob.mode
+            bpy.ops.object.mode_set(mode = mode_to_set)
+            debug = "Changed Mode 2 \"%s\" to \"%s\" " % (prev_mode, mode_to_set)
+            #Selects the mirror vertices of Mesh
+            bpy.ops.mesh.select_mirror(axis={'X'}, extend=True)
+        else:
+            debug = "previous_mode() 2 nothing happened"
+        
+        print(debug)
+        #print("prev_mode4: %s" % (ob.mode) )
+        return None#prev_mode
+        
+    #def index_check(type):
+    def index_check(index, type, iterator=None):
+        if type == "ADD":
+            print("bruh")
+        if type == "REMOVE":
+            if len(iterator) > 0 and index > 0:
+                index-=1
+                #print("bruh")
+        return index
+    
+    @classmethod
+    def poll(cls, context):
+        #scene = bpy.context.scene
+        #props = scene.IM_Props
+        #The wanted object types
+        ob_types = ["MESH"]
+        
+        #if wanted object type is inside ob_types
+        return context.object.type in ob_types
+    
+    def execute(self, context):
+        scene = bpy.context.scene
+        #context = bpy.context
+        ob = context.object
+        #context = bpy.context
+        data = context.object.data
+        props = scene.RD_Props
+        
+        vg = bpy.context.object.vertex_groups
+        vg_active = vg.active
+        
+        reportString = "Done!"
+        
+        #Creates animation_data if there isn't none
+        if self.type == "FROM_SELECTION":
+            #previous mode
+            prev_mode = context.object.mode
+            #print("prev_mode1: %s" % (prev_mode) )
+            #Either EXCLUDE or INCLUDE
+            inclusion = props.inclusion
+            vg_weight = props.vertex_group_weight
+            select_mirror = props.include_mirror_selection
+            
+            direction = str(props.direction )
+            
+            #selects the mirrored vertices to also affect them and their weights. 
+            if select_mirror:
+                self.selectMirrorVertices(prev_mode, ob)
+            
+            #previous_mode(self, prev_mode, context, before=True)
+            previous_mode(prev_mode, ob, before=True)
+            
+            verts = getSelectedVertices(ob)
+            
+            #index list of props.vertex_groups to compare to object vertex_groups
+            vg_props = getVerGpsProps(props.vertex_groups, ob)
+            print("vg_props[%d]: %s" % (len(vg_props), str(vg_props) ) )
+            
+            if props.enforce_direction == True or props.exclude_non_sides == True:
+                vg_props = getVerGpsFromDirection(ob, vg_props, direction, props.exclude_non_sides, props.enforce_direction)
+                
+            name_list = []
+            for i in vg_props:
+                name_list.append(ob.vertex_groups[i].name)
+                
+            print(direction)
+            print("getVerGpsFromDirection(): %s" % (str(name_list) ) )
+            #getVerGpsFromDirection(object, vertex_group_index_list, direction, exclude_non_sides=False, enforce_direction=False)
+            
+            #Note: This return is for Testing
+            ##return {'FINISHED'}
+            #dictionary used for statsistics of Vertex Groups and Vertices affected
+            vg_stats = createVerGpsDictStats(vg_props, ob)
+            
+            #If the object has at least 1 vertex group
+            if len(context.object.vertex_groups) > 0:
+                
+                if inclusion == "INCLUDE":
+                    if len(vg_props) > 0:
+                        #Every selected vertex
+                        for i in verts:
+                            if len(ob.data.vertices[i].groups) > 0:
+                                
+                                groups_in = []
+                                #Need to find a better solution that having this as a list
+                                bruh = [i]
+                                #Rather than use a list, use a single tuple for perfomance. Change to list if you plan on .appending to the list
+                                #bruh = (i,)
+                                
+                                #This is for vg_stats
+                                count = len(ob.data.vertices[i].groups)
+                                if count in vg_stats["count"]:
+                                    vg_stats["count"][count] += 1
+                                else:
+                                    vg_stats["count"][count] = 1
+                                
+                                #For every Vertex Group of Vertex
+                                for j in ob.data.vertices[i].groups:
+                                    #Won't affect vertices that aren't part of the group. Ex. The "0" influence ones
+                                    if j.group in vg_props:
+                                        group_name = ob.vertex_groups[j.group].name
+                                        #You need a function to print out the stats, this isn't implemented yet though.
+                                        vg_stats["vertex_groups"][group_name]["verts"] += 1
+                                        
+                                        groups_in.append(j.group)
+                                        #groups_in.append(group_name)
+                                        #ob.data.vertices[i]
+                                        #print("Vertex: %d" % (i) )
+                                        
+                                        #ob.vertex_groups[j.group].add(i, vg_weight, 'REPLACE')
+                                        #bruh = [i]
+                                        ob.vertex_groups[j.group].add(bruh, vg_weight, 'REPLACE')
+                                    else:
+                                        pass
+                                        
+                                #list of Vertex Groups the Vertex isn't part of
+                                groups_need = createVerGpsNeeded(groups_in, vg_props)
+                                
+                                #Adds Vertex Groups the Vertex still needs to apply a weight value
+                                for m in groups_need:
+                                    #vg_new = ob.vertex_groups.new(name=ob.vertex_groups[m].name)
+                                    vg_new = ob.vertex_groups[m]
+                                    vg_new.add(bruh, vg_weight, 'ADD')
+                                    
+                        #Prints stats
+                        printVerGpsDictStats(vg_stats)
+                            
+                        #Enforce direction needs to be on in order to mirror from the direction used from props.direction
+                        if props.enforce_direction == True:
+                            #Mirrors vertex groups
+                            if props.auto_mirror == True:
+                                mirrorVerGrps(ob, vg_props, direction)
+                                print("Mirrored Vertex Groups From: %s" % (direction) )
+                        
+                    else:
+                        reportString = "INCLUDE: 0 Vertex Groups"
+                elif inclusion == "EXCLUDE":
+                    reportString = "EXCLUDE: Function Option Not Implemented Yet. Nothing Happened."
+                #bpy.context.object.vertex_groups.active.name
+                #bpy.context.object.vertex_groups.active_index
+                
+                previous_mode(prev_mode, ob, before=False)
+                
+            else:
+                reportString = "Object \"%s\" has no Vertex Groups" % (ob.name)
+            
+        elif self.type == "MIRROR_VERTEX_GROUPS":
+            direction = str(self.direction)
+            
+            ##
+            #previous mode
+            prev_mode = context.object.mode
+            #previous_mode(self, prev_mode, context, before=True)
+            previous_mode(prev_mode, ob, before=True)
+            print("previous_mode[0]: %s" % (prev_mode) )
+            ##
+            
+            #index list of props.vertex_groups to compare to object vertex_groups
+            vg_props = getVerGpsProps(props.vertex_groups, ob)
+            
+            #gets list of vertex groups from a direction
+            vg_props = getVerGpsFromDirection(ob, vg_props, direction, True, True)
+            
+            #Mirrors vertex groups
+            mirrorVerGrps(ob, vg_props, direction)
+            
+            previous_mode(prev_mode, ob, before=False)
+            print("previous_mode[1]: %s" % (prev_mode) )
+            
+            reportString = "Mirrored Vertex Groups from: %s" % (direction)
+            
+        #Resets default settings
+        self.resetSelf()
+        
+        print(reportString)
+        self.report({'INFO'}, reportString)
+        return {'FINISHED'}
+
+class RIG_DEBUGGER_OT_VertexGroupOps(bpy.types.Operator):
     bl_idname = "rig_debugger.vertex_group_ops"
     bl_label = "Custom Vertex Group Operators"
     bl_description = "To assist with debugging and development"
     bl_options = {'UNDO',}
     type: bpy.props.StringProperty(default="DEFAULT")
+    direction: bpy.props.StringProperty(default="DEFAULT")
     #include: bpy.props.BoolProperty(default=False)
     #mirror: bpy.props.BoolProperty(default=False)
     #sub: bpy.props.StringProperty(default="DEFAULT")
     #index: bpy.props.IntProperty(default=0, min=0)
     
+    def resetSelf(self):
+        self.type = "DEFAULT"
+        self.direction = "DEFAULT"
+        #print("Reset States: %s, %d, %d, %s" % (self.type, self.include, self.direction ) )
+        #return None
+    
+    @classmethod
+    def poll(cls, context):
+        #The wanted object types
+        ob_types = ["MESH"]
+        
+        #if wanted object type is inside ob_types
+        return context.object.type in ob_types
+    
     def execute(self, context):
         scene = bpy.context.scene
         context = bpy.context
+        
+        ob = context.object
+        
         data = context.object.data
         props = scene.RD_Props
+        
+        vg = bpy.context.object.vertex_groups
+        vg_active = vg.active
+        
+        reportString = "Done!"
         
         #Creates animation_data if there isn't none
         if self.type == "CREATE_EMPTY_BONE_GROUPS":
@@ -1832,461 +2332,17 @@ class RIG_DEBUGGER_OT_VertexGroup_Ops(bpy.types.Operator):
             else:
                 reportString = "Only one object selected"
                 
-            print(reportString)
-            self.report({'INFO'}, reportString)
-                
-        #Resets default settings
-        self.type == "DEFAULT"
-        
-        return {'FINISHED'}
-
-class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
-    bl_idname = "rig_debugger.vertex_group_influence"
-    bl_label = "Changes the weight of multiple Vertex Groups based on selected vertices"
-    bl_description = "To assist with debugging and development"
-    bl_options = {'UNDO',}
-    type: bpy.props.StringProperty(default="DEFAULT")
-    include: bpy.props.BoolProperty(default=False)
-    mirror: bpy.props.BoolProperty(default=False)
-    direction: bpy.props.StringProperty(default="LEFT")
-    #sub: bpy.props.StringProperty(default="DEFAULT")
-    #index: bpy.props.IntProperty(default=0, min=0)
-    
-    #Resets default settings
-    #@classmethod
-    #@staticmethod
-    def resetSelf(self):
-        self.type = "DEFAULT"
-        self.include = False
-        self.mirror = False
-        self.direction = "LEFT"
-        #print("Reset States: %s, %d, %d, %s" % (self.type, self.include, self.direction ) )
-        #return None
-    
-    #This function will check to change/reset the previous mode of the object for operator to work
-    def previous_mode(self, prev_mode, object, before=True):
-        #sets string prev_mode
-        #ob = context.object
-        print("prev_mode1: %s" % (prev_mode) )
-        ob = object
-        #prev_mode = ob.mode
-        mode_to_set = 'OBJECT'
-        
-        #This checks to see if this is before the operator starts or after to reset the previous object mode
-        if before == True:
-            if prev_mode != mode_to_set:
-                #prev_mode = ob.mode
-                bpy.ops.object.mode_set(mode = mode_to_set)
-                debug = "Changed Mode 2 \"%s\" to \"%s\" " % (prev_mode, mode_to_set)
-            else:
-                debug = "previous_mode() 2 nothing happened"
-        else:
-            if prev_mode != mode_to_set:
-                #prev_mode = ob.mode
-                bpy.ops.object.mode_set(mode = prev_mode)
-                debug = "Changed Mode 3 \"%s\" to \"%s\" " % (mode_to_set, prev_mode)
-            else:
-                debug = "previous_mode() 3 nothing happened"
-        
-        print(debug)
-        #print("prev_mode4: %s" % (ob.mode) )
-        return None#prev_mode
-        
-    
-    #Goes to EDIT mode for .select_mirror() poll context, to select the mirror vertices of Mesh Object
-    def selectMirror(self, prev_mode, object):
-        #sets string prev_mode
-        #ob = context.object
-        print("prev_mode1: %s" % (prev_mode) )
-        ob = object
-        #prev_mode = ob.mode
-        mode_to_set = 'EDIT'
-        
-        #This checks to see if this is before the operator starts or after to reset the previous object mode
-        if prev_mode != mode_to_set:
-            #prev_mode = ob.mode
-            bpy.ops.object.mode_set(mode = mode_to_set)
-            debug = "Changed Mode 2 \"%s\" to \"%s\" " % (prev_mode, mode_to_set)
-            #Selects the mirror vertices of Mesh
-            bpy.ops.mesh.select_mirror(axis={'X'}, extend=True)
-        else:
-            debug = "previous_mode() 2 nothing happened"
-        
-        print(debug)
-        #print("prev_mode4: %s" % (ob.mode) )
-        return None#prev_mode
-        
-    #def index_check(type):
-    def index_check(index, type, iterator=None):
-        if type == "ADD":
-            print("bruh")
-        if type == "REMOVE":
-            if len(iterator) > 0 and index > 0:
-                index-=1
-                #print("bruh")
-        return index
-    
-    @classmethod
-    def poll(cls, context):
-        #scene = bpy.context.scene
-        #props = scene.IM_Props
-        #The wanted object types
-        ob_types = ["MESH"]
-        
-        #if wanted object type is inside ob_types
-        return context.object.type in ob_types
-    
-    def execute(self, context):
-        scene = bpy.context.scene
-        #context = bpy.context
-        ob = context.object
-        #context = bpy.context
-        data = context.object.data
-        props = scene.RD_Props
-        #print("" % () )
-        vg = bpy.context.object.vertex_groups
-        vg_active = vg.active
-        
-        reportString = "Done!"
-        
-        #Function is only needed here, so no reason to have it out. If you do, add "self" parameter to beginning
-        #Checks if vertex_group name was already added to props.vertex_groups
-        def groupExists(vertex_group_active, groups):
-            #groups = props.vertex_groups
-            for i in groups:
-                if i.name == vertex_group_active.name:
-                    return True
-                    
-            return False
-        
-        #Gets all selected vertices of object and returns list of vertex indexes
-        def getSelectedVertices(mesh_object):
-            ob = mesh_object
-            verts = []
-            
-            for i in ob.data.vertices:
-                if i.select == True:
-                    verts.append(i.index)
-                    
-            return verts
-            
-        #Gets list of Vertex Groups indexes from String names in props.vertex_groups
-        def getVerGpsProps(propGroup, object):
-            ob = object
-            vertex_group_index_list = []
-            
-            for i in propGroup:
-                #Checks if name is in vertex_groups
-                if i.name in ob.vertex_groups and i.use == True:
-                    #Checks if it isn't a duplicate
-                    if ob.vertex_groups[i.name].index not in vertex_group_index_list:
-                        vertex_group_index_list.append(i.index)
-                    
-            return vertex_group_index_list
-            
-        #object for .vertex_groups, index list [1,3,4...], direction = "LEFT" string, exclude_non_sides = False boolean
-        def getVerGpsFromDirection(object, vertex_group_index_list, direction, exclude_non_sides=False, enforce_direction=False):
-            ob = object
-            vertex_group_index_list_new = []
-            
-            #Sets "LEFT" or "RIGHT" to "l" or "r" to compare with getDirection()
-            dir = direction[0].lower()
-            
-            #Remove this after
-            """
-            #If you want vertex_groups from a specific direction
-            if enforce_direction == True:
-                for i in vertex_group_index_list:
-                    #Gets name of vertex_group
-                    vert_grp_name = ob.vertex_groups[i].name
-                    
-                    #vert_grp_dir = getDirectionRegEx(vert_grp_name, type="STRING")[0].lower()
-                    vert_grp_dir = getDirection(vert_grp_name)
-                    #matchString = vert_grp_dir.group(0)[0].lower()
-                    print("vert_grp_dir: %s" % (vert_grp_dir) )
-                    #print("vert_grp_dir: %s" % (matchString) )
-                    #if enforce_direction == True:
-                    #If you want to exclude nonsided vertex_groups. ex. "Hips"
-                    if exclude_non_sides == True:
-                        if vert_grp_dir == dir:
-                            vertex_group_index_list_new.append(i)
-                    else:
-                        #Checks if its None, since that is what getDirectionRegEx() returns if no side match is found
-                        if vert_grp_dir == dir or vert_grp_dir == "":
-                            vertex_group_index_list_new.append(i)
-            else:
-                #If you want to exclude nonsided vertex_groups. ex. "Hips"
-                if exclude_non_sides == True:
-                    for i in vertex_group_index_list:
-                        #Gets name of vertex_group
-                        vert_grp_name = ob.vertex_groups[i].name
-                        
-                        #vert_grp_dir = getDirectionRegEx(vert_grp_name, type="STRING")[0].lower()
-                        #vert_grp_dir = getDirectionRegEx(vert_grp_name)
-                        vert_grp_dir = getDirection(vert_grp_name)
-                        
-                        #Checks if it is a side
-                        if vert_grp_dir != "":
-                            vertex_group_index_list_new.append(i)
-                else:
-                    vertex_group_index_list = vertex_group_index_list_new
-            #"""
-                    
-            
-            for i in vertex_group_index_list:
-                #Gets name of vertex_group
-                vert_grp_name = ob.vertex_groups[i].name
-                
-                #vert_grp_dir = getDirectionRegEx(vert_grp_name, type="STRING")[0].lower()
-                vert_grp_dir = getDirection(vert_grp_name)
-                #matchString = vert_grp_dir.group(0)[0].lower()
-                print("vert_grp_dir: %s" % (vert_grp_dir) )
-                #print("vert_grp_dir: %s" % (matchString) )
-                #if enforce_direction == True:
-                
-                #If you want vertex_groups from a specific direction
-                if enforce_direction == True:
-                    #If you want to exclude nonsided vertex_groups. ex. "Hips"
-                    if exclude_non_sides == True:
-                        if vert_grp_dir == dir:
-                            vertex_group_index_list_new.append(i)
-                    else:
-                        #Checks if its None, since that is what getDirectionRegEx() returns if no side match is found
-                        if vert_grp_dir == dir or vert_grp_dir == "":
-                            vertex_group_index_list_new.append(i)
-                else:
-                    #If you want to exclude nonsided vertex_groups. ex. "Hips"
-                    if exclude_non_sides == True:
-                        #Checks if it is a side
-                        if vert_grp_dir != "":
-                            vertex_group_index_list_new.append(i)
-                    #No need to continue in the for loop, since this would just return the same list
-                    else:
-                        vertex_group_index_list = vertex_group_index_list_new
-                        break
-                    
-                    
-            return vertex_group_index_list_new
-            
-        #Note, performance of function is super slow, since it uses Blender's operators. Need a copyVertexGroup() function for better performance
-        #This function returns None
-        def mirrorVerGrps(object, vertex_group_index_list, direction):
-            ob = object
-            vertex_group_name_list = []
-            
-            flipped_list = []
-            deleted_list = []
-            
-            #Sets "LEFT" or "RIGHT" to "l" or "r" to compare with getDirection()
-            dir = direction[0].lower()
-            
-            #Will reset the index to this Vertex Group, since it will change.
-            prev_index_UI = ob.vertex_groups.active.index
-            
-            for i in vertex_group_index_list:
-                vert_grp_name = ob.vertex_groups[i].name
-                vertex_group_name_list.append(vert_grp_name)
-            
-            for i in vertex_group_name_list:
-                #Gets name of vertex_group
-                #vert_grp_name = ob.vertex_groups[i].name
-                #vert_grp_name = i
-                
-                #vert_grp_dir = getDirectionRegEx(vert_grp_name, type="STRING")[0].lower()
-                #vert_grp_dir = getDirection(vert_grp_name)
-                vert_grp_flip = flipNames(i)
-                
-                #Checks if the name is flippable
-                if vert_grp_flip != None:
-                    flipped_list.append(vert_grp_flip)
-                    #matchString = vert_grp_dir.group(0)[0].lower()
-                    
-                    #Index of Vertex Group to use the .vertex_group_copy() operator
-                    prev_index = ob.vertex_groups[i].index
-                    #If there was an existing flipped Vertex Group, save its index to move the new one here again
-                    prev_index_flip = None
-                    
-                    if vert_grp_flip in ob.vertex_groups:
-                        #prev_index_flip = ob.vertex_groups[vert_grp_flip].index
-                        deleted_list.append(vert_grp_flip)
-                        #del ob.vertex_groups[vert_grp_flip]
-                        ob.vertex_groups.remove(ob.vertex_groups[vert_grp_flip] )
-                    
-                    print("vert_grp_flip: %s; Prev_Index_Flip: %s" % (vert_grp_flip, str(prev_index_flip) ) )
-                    
-                    #new_vert_grp = ob.vertex_groups.new(name=vert_grp_name)
-                    ob.vertex_groups.active_index = prev_index
-                    
-                    #This operator copies a Vertex Group and moves the active index to the last
-                    bpy.ops.object.vertex_group_copy()
-                    new_vert_grp = ob.vertex_groups.active
-                    
-                    #Mirrors the new active vertex group, which is the new_vert_grp
-                    bpy.ops.object.vertex_group_mirror(use_topology=False)
-                    
-                    new_vert_grp.name = vert_grp_flip
-                    
-                    #You can't change the Vertex Group .index for some reason
-                    """
-                    if prev_index_flip != None:
-                        new_vert_grp.index = prev_index_flip
-                    #"""
-            
-            #After for loop
-            ob.vertex_groups.active_index = prev_index_UI
-            
-            print("Flipped: %s" % (flipped_list) )
-            print("Deleted: %d; %s" % (len(deleted_list), deleted_list) )
-            
-            return None
-        
-            
-        #Creates a dictionary of Vertex Group names from their indexes, to use for Statistical purposes
-        def createVerGpsDictStats(vertex_group_index_list, object):
-            ob = object
-            dict = {}
-            
-            for i in vertex_group_index_list:
-                group_name = ob.vertex_groups[i].name
-                #dict[i] = {}
-                dict[group_name] = {}
-                #For the number of vertices in the Vertex Group
-                #dict[i]["verts"] = 0
-                dict[group_name]["verts"] = 0
-                    
-            return dict
-            
-        #Creates a list of Vertex Group indexes that are still needed for Vertex
-        def createVerGpsNeeded(groups_in, vg_props):
-            #groups_in, an incomplete index list of Vertex Groups of vertex already from vg_props
-            #vg_props, complete index list of Vertex Groups from vg_props
-            groups_need = vg_props[::]
-            
-            for m in groups_in:
-                if m in groups_need:
-                    groups_need.remove(m)
-                    
-            return groups_need
-            
-        
         #Creates animation_data if there isn't none
-        if self.type == "FROM_SELECTION":
-            #previous mode
-            prev_mode = context.object.mode
-            #print("prev_mode1: %s" % (prev_mode) )
-            #Either EXCLUDE or INCLUDE
-            inclusion = props.inclusion
-            vg_weight = props.vertex_group_weight
-            select_mirror = props.include_mirror_selection
+        if self.type == "MIRROR_VERTEX_GROUPS":
+            print("Bruh")
             
-            direction = props.direction
-            
-            #selects the mirrored vertices to also affect them and their weights. 
-            if select_mirror:
-                self.selectMirror(prev_mode, ob)
-            
-            #previous_mode(self, prev_mode, context, before=True)
-            self.previous_mode(prev_mode, ob, before=True)
-            
-            verts = getSelectedVertices(ob)
-            
-            #index list of props.vertex_groups to compare to object vertex_groups
-            vg_props = getVerGpsProps(props.vertex_groups, ob)
-            print("vg_props[%d]: %s" % (len(vg_props), str(vg_props) ) )
-            
-            if props.enforce_direction == True or props.exclude_non_sides == True:
-                vg_props = getVerGpsFromDirection(ob, vg_props, direction, props.exclude_non_sides, props.enforce_direction)
-                
-            name_list = []
-            for i in vg_props:
-                name_list.append(ob.vertex_groups[i].name)
-                
-            print(direction)
-            print("getVerGpsFromDirection(): %s" % (str(name_list) ) )
-            #getVerGpsFromDirection(object, vertex_group_index_list, direction, exclude_non_sides=False, enforce_direction=False)
-            
-            #Note: This return is for Testing
-            ##return {'FINISHED'}
-            #dictionary used for statsistics of Vertex Groups and Vertices affected
-            vg_stats = createVerGpsDictStats(vg_props, ob)
-            
-            #If the object has at least 1 vertex group
-            if len(context.object.vertex_groups) > 0:
-                
-                if inclusion == "INCLUDE":
-                    if len(vg_props) > 0:
-                        #Every selected vertex
-                        for i in verts:
-                            if len(ob.data.vertices[i].groups) > 0:
-                                
-                                groups_in = []
-                                #Need to find a better solution that having this as a list
-                                bruh = [i]
-                                
-                                #For every Vertex Group of Vertex
-                                for j in ob.data.vertices[i].groups:
-                                    #Won't affect vertices that aren't part of the group. Ex. The "0" influence ones
-                                    if j.group in vg_props:
-                                        group_name = ob.vertex_groups[j.group].name
-                                        #You need a function to print out the stats, this isn't implemented yet though.
-                                        vg_stats[group_name]["verts"] += 1
-                                        
-                                        groups_in.append(j.group)
-                                        #groups_in.append(group_name)
-                                        #ob.data.vertices[i]
-                                        #print("Vertex: %d" % (i) )
-                                        
-                                        #ob.vertex_groups[j.group].add(i, vg_weight, 'REPLACE')
-                                        #bruh = [i]
-                                        ob.vertex_groups[j.group].add(bruh, vg_weight, 'REPLACE')
-                                    else:
-                                        pass
-                                        
-                                #list of Vertex Groups the Vertex isn't part of
-                                groups_need = createVerGpsNeeded(groups_in, vg_props)
-                                
-                                #Adds Vertex Groups the Vertex still needs to apply a weight value
-                                for m in groups_need:
-                                    #vg_new = ob.vertex_groups.new(name=ob.vertex_groups[m].name)
-                                    vg_new = ob.vertex_groups[m]
-                                    vg_new.add(bruh, vg_weight, 'ADD')
-                                    
-                                #This was here before, and dumb since it was adding 100+ new vertex groups, not assigning existing to the vertex
-                                """
-                                #list of Vertex Groups the Vertex isn't part of
-                                groups_need = createVerGpsNeeded(groups_in, vg_props)
-                                
-                                #Adds Vertex Groups the Vertex still needs to apply a weight value
-                                for m in groups_need:
-                                    vg_new = ob.vertex_groups.new(name=ob.vertex_groups[m].name)
-                                    vg_new.add(bruh, vg_weight, 'REPLACE')
-                                #"""
-                        
-                        #Prints stats
-                        for i in vg_stats:
-                            print(i)
-                            print("Vertex Group: %s, Vertexes in: %d" % (i, vg_stats[i]["verts"]) )
-                        
-                    else:
-                        reportString = "INCLUDE: 0 Vertex Groups"
-                elif inclusion == "EXCLUDE":
-                    reportString = "EXCLUDE: Function Option Not Implemented Yet. Nothing Happened."
-                #bpy.context.object.vertex_groups.active.name
-                #bpy.context.object.vertex_groups.active_index
-                
-                self.previous_mode(prev_mode, ob, before=False)
-                
-            else:
-                reportString = "Object \"%s\" has no Vertex Groups" % (ob.name)
-            
-        elif self.type == "MIRROR_VERTEX_GROUPS":
             direction = str(self.direction)
             
             ##
             #previous mode
             prev_mode = context.object.mode
             #previous_mode(self, prev_mode, context, before=True)
-            self.previous_mode(prev_mode, ob, before=True)
+            previous_mode(prev_mode, ob, before=True)
             print("previous_mode[0]: %s" % (prev_mode) )
             ##
             
@@ -2299,26 +2355,20 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
             #Mirrors vertex groups
             mirrorVerGrps(ob, vg_props, direction)
             
-            self.previous_mode(prev_mode, ob, before=False)
+            previous_mode(prev_mode, ob, before=False)
             print("previous_mode[1]: %s" % (prev_mode) )
             
-        """
-        elif self.type == "REMOVE":
-            if len(props.vertex_groups) > 0:
-                props.vertex_groups.remove(props.RD_ULIndex )
-                
-                if props.RD_ULIndex >= len(props.vertex_groups):
-                    props.RD_ULIndex = len(props.vertex_groups)-1
-        #"""
-        #Resets default settings
-        #self.resetSelf()
-        #self.resetSelf(self)
-        self.resetSelf()
+            reportString = "Mirrored Vertex Groups from: %s" % (direction)
         
         print(reportString)
         self.report({'INFO'}, reportString)
-        return {'FINISHED'}
         
+        #Resets default settings
+        self.resetSelf()
+        
+        return {'FINISHED'}
+
+
 #Copies properties from one object to another. If Duplicate Object is missing properties, it will ignore it.
 def copyAttributes(object, object_duplicate):
     attributes = []
@@ -2497,16 +2547,6 @@ class RIG_DEBUGGER_OT_VertexGroup_UIOps(bpy.types.Operator):
     def __del__(self):
         print("End")
     #"""
-        
-    #def index_check(type):
-    def index_check(index, type, iterator=None):
-        if type == "ADD":
-            print("bruh")
-        if type == "REMOVE":
-            if len(iterator) > 0 and index > 0:
-                index-=1
-                #print("bruh")
-        return index
     
     @classmethod
     def poll(cls, context):
@@ -2521,9 +2561,11 @@ class RIG_DEBUGGER_OT_VertexGroup_UIOps(bpy.types.Operator):
     def execute(self, context):
         scene = bpy.context.scene
         #context = bpy.context
+        ob = context.object
+        
         data = context.object.data
         props = scene.RD_Props
-        #print("" % () )
+        
         vg = bpy.context.object.vertex_groups
         vg_active = vg.active
         
@@ -2570,6 +2612,26 @@ class RIG_DEBUGGER_OT_VertexGroup_UIOps(bpy.types.Operator):
             
         elif self.type == "DOWN":
             props.RD_ULIndex = UI_Functions(props.vertex_groups, UI_Index, self.type)
+            
+        elif self.type == "ADD_FROM_SELECTED_BONES":
+            #list of selected pose bones
+            active_object_bones = bpy.context.selected_pose_bones_from_active_object
+            
+            if len(active_object_bones) > 0:
+                
+                added_vertex_groups = 0
+                
+                for i in active_object_bones:
+                    if i.name not in props.vertex_groups:
+                        group_new = props.vertex_groups.add()
+                        group_new.name = i.name
+                        
+                        added_vertex_groups += 1
+                        
+                reportString = "Added %d Selected Vertex Groups from Selected Bones" % (added_vertex_groups)
+            else:
+                reportString = "No bones Selected"
+            
         #Resets default settings
         #self.resetSelf()
         self.resetSelf(self)
@@ -2577,6 +2639,78 @@ class RIG_DEBUGGER_OT_VertexGroup_UIOps(bpy.types.Operator):
         print(reportString)
         self.report({'INFO'}, reportString)
         return {'FINISHED'}
+
+class REGEX_SCANNER_MT_DropdownMenu1(bpy.types.Menu):
+    bl_idname = "regex_scanner.dropdown_menu_1"
+    bl_label = "Selected Vertex Group Operators"
+    bl_description = "Extra Operators for Selected Vertex Groups"
+    
+    def draw(self, context):
+        layout = self.layout
+        scene = bpy.context.scene
+        data = bpy.data
+        
+        col = layout.column()
+        
+        row = col.row(align=True)
+        row.label(text="Add Selected Vertex Groups:")
+        
+        #
+        
+        row = col.row(align=True)
+        button = row.operator("rig_debugger.vertex_group_ui_ops", text="From Selected Bones", icon="ADD")
+        button.type = "ADD_FROM_SELECTED_BONES"
+        
+        col.separator()
+        
+        row = col.row(align=True)
+        row.label(text="Mirror Selected Vertex Groups:", icon="MOD_MIRROR")
+        
+        #col.separator()
+        
+        #"""
+        row = col.row(align=True)
+        button = row.operator("rig_debugger.vertex_group_influence", text="From Left", icon="MOD_MIRROR")
+        button.type = "MIRROR_VERTEX_GROUPS"
+        button.direction = "LEFT"
+        
+        row = col.row(align=True)
+        button = row.operator("rig_debugger.vertex_group_influence", text="From Right")#, icon="MOD_MIRROR")
+        button.type = "MIRROR_VERTEX_GROUPS"
+        button.direction = "RIGHT"
+        #"""
+        
+        #ResButtonMenu End
+
+class REGEX_SCANNER_MT_DropdownMenu2(bpy.types.Menu):
+    bl_idname = "regex_scanner.dropdown_menu_2"
+    bl_label = "Vertex Group Operators"
+    bl_description = "Extra Operators for Object\'s Vertex Groups"
+    
+    def draw(self, context):
+        layout = self.layout
+        scene = bpy.context.scene
+        data = bpy.data
+        
+        col = layout.column()
+        
+        row = col.row(align=True)
+        row.label(text="Mirror Vertex Groups:", icon="MOD_MIRROR")
+        
+        col.separator()
+        
+        
+        row = col.row(align=True)
+        button = row.operator("rig_debugger.vertex_group_ops", text="From Left", icon="MOD_MIRROR")
+        button.type = "MIRROR_VERTEX_GROUPS"
+        button.direction = "LEFT"
+        
+        row = col.row(align=True)
+        button = row.operator("rig_debugger.vertex_group_ops", text="From Right")#, icon="MOD_MIRROR")
+        button.type = "MIRROR_VERTEX_GROUPS"
+        button.direction = "RIGHT"
+        
+        #ResButtonMenu End
 
 #Calculates ammounts of different attributes drivers have
 def calculateUIALL(string):
@@ -2642,17 +2776,14 @@ class RIG_DEBUGGER_WEIGHTGROUPS_UL_items(bpy.types.UIList):
             if len(RDCollect) > 0:
                 row = layout.row(align=True)
                 
+                row.prop(item, "use", text="")
+                row.prop(item, "name", text="", emboss=False)
+                
                 #function to change icon for error
                 if self.isVertexGroup(item, context.object) == False:
                     usedIcon = 'ERROR'
-                else:
-                    usedIcon = 'BLANK1'
-                    
-                row.label(text="", icon=usedIcon)
-                row.prop(item, "use", text="")
-                row.prop(item, "name", text="", emboss=False)
-                #row.prop(item, "index", text="")
-                    
+                    #usedIcon = 'BLANK1'
+                    row.label(text="", icon=usedIcon)
             else:
                 row.label(text="No Iterations Here")
                 
@@ -2963,30 +3094,41 @@ class VertexGroupsOpsDraw:
         #Layout Starts
         col = layout.column()
         
+        """
         row = col.row(align=True)
         row.label(text="Vertex Groups: %d" % (len(ob.vertex_groups)) )
         
         col.separator()
+        #"""
         
         row = col.row(align=True)
-        row.label(text="Create Vertex Groups:")
+        row.label(text="Create Empty Vertex Groups:")
         row = col.row(align=True)
-        row.operator("rig_debugger.vertex_group_ops", text="Empty Vertex Groups From Bones", icon="GROUP_VERTEX").type = "CREATE_EMPTY_BONE_GROUPS"
+        row.operator("rig_debugger.vertex_group_ops", text="From Bones without Groups", icon="GROUP_VERTEX").type = "CREATE_EMPTY_BONE_GROUPS"
+        
+        row = col.row(align=True)
+        row.label(text="Mirror Selected Vertex Groups:")
+        
+        row = col.row(align=True)
+        button = row.operator("rig_debugger.vertex_group_influence", text="From Left", icon="MOD_MIRROR")
+        button.type = "MIRROR_VERTEX_GROUPS"
+        button.direction = "LEFT"
+        
+        row = col.row(align=True)
+        button = row.operator("rig_debugger.vertex_group_influence", text="From Right", icon="MOD_MIRROR")
+        button.type = "MIRROR_VERTEX_GROUPS"
+        button.direction = "RIGHT"
         
         col.separator()
         
+        """
         row = col.row(align=True)
-        row.label(text="Influence Vertex Groups:")
+        #row.label(text="Influence Vertex Groups:")
+        row.label(text="Apply to Selected Vertex Groups:")
         
         row = col.row(align=True)
         button = row.operator("rig_debugger.vertex_group_influence", text="From Vertex Selection", icon="RESTRICT_SELECT_OFF")
         button.type = "FROM_SELECTION"
-        
-        row = col.row(align=True)
-        button = row.operator("rig_debugger.vertex_group_influence", text="Mirror Vertex Groups LEFT", icon="MOD_MIRROR")
-        button.type = "MIRROR_VERTEX_GROUPS"
-        button.direction = "LEFT"
-        
         
         
         col.separator()
@@ -3013,9 +3155,56 @@ class VertexGroupsOpsDraw:
         row.active = bool(props.enforce_direction)
         #col.separator()
         
+        row = col.row(align=True)
+        row.prop(props, "auto_mirror", expand=True)
+        row.active = bool(props.enforce_direction)
+        
+        col.separator()
+        #"""
+        
+        
         #Start of template_list UI
         row = col.row(align=True)
-        row.label(text="Selected Vertex Groups:")
+        row.label(text="Object Vertex Groups: %d" % (len(ob.vertex_groups)) )
+        
+        """
+        row = col.row(align=True)
+        row.label(text="Vertex Groups: %d" % (len(ob.vertex_groups)) )
+        #"""
+        
+        #Splitting for the template_list
+        split = layout.row(align=False)
+        col = split.column(align=True)
+        
+        row = col.row(align=True)
+        ob = context.object
+        row.template_list("MESH_UL_vgroups", "", ob, "vertex_groups", ob.vertex_groups, "active_index", rows=4)
+        
+        col = split.column(align=True)
+        
+        row = col.row(align=True)
+        button = row.operator("rig_debugger.vertex_group_ui_ops", text="", icon="ADD")
+        button.type = "ADD"
+        
+        #Dropdown Menu
+        row = col.row(align=True)
+        row.menu("regex_scanner.dropdown_menu_2", icon="DOWNARROW_HLT", text="")
+        
+        #Reset the col to column
+        col = layout.column()
+        
+        def usedVertexGroups(vertex_groups):
+            used = 0
+            
+            for i in props.vertex_groups:
+                if i.use == True:
+                    used += 1
+                    
+            return used
+        
+        row = col.row(align=True)
+        #row.label(text="Selected Vertex Groups:")
+        row.label(text="Selected Vertex Groups: %d/%d" % (usedVertexGroups(props.vertex_groups), len(props.vertex_groups) ) )
         
         #Splitting for the template_list
         split = layout.row(align=False)
@@ -3039,27 +3228,9 @@ class VertexGroupsOpsDraw:
         button = row.operator("rig_debugger.vertex_group_ui_ops", text="", icon="TRIA_DOWN")
         button.type = "DOWN"
         
-        #Reset the col to column
-        col = layout.column()
-        
+        #Dropdown Menu
         row = col.row(align=True)
-        row.label(text="Object Vertex Groups:")
-        
-        #Splitting for the template_list
-        split = layout.row(align=False)
-        col = split.column(align=True)
-        
-        row = col.row(align=True)
-        ob = context.object
-        row.template_list("MESH_UL_vgroups", "", ob, "vertex_groups", ob.vertex_groups, "active_index", rows=4)
-        
-        col = split.column(align=True)
-        
-        row = col.row(align=True)
-        button = row.operator("rig_debugger.vertex_group_ui_ops", text="", icon="ADD")
-        button.type = "ADD"
-        
-        
+        row.menu("regex_scanner.dropdown_menu_1", icon="DOWNARROW_HLT", text="")
         
         #End of CustomPanel
         
@@ -3093,6 +3264,64 @@ class RIG_DEBUGGER_PT_VertexGroups1(VertexGroupsOpsDraw, bpy.types.Panel):
     #bl_context = "output"
     bl_category = "Rig Debugger"
     
+class RIG_DEBUGGER_PT_VertexGroups1_InfluenceVertGroups(bpy.types.Panel):
+    bl_parent_id = "RIG_DEBUGGER_PT_VertexGroups1"
+    bl_label = "Influence Vertex Groups"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = 'UI'
+    #bl_context = "output"
+    bl_category = "Rig Debugger"
+    
+    # draw function
+    def draw(self, context):
+        layout = self.layout
+        ob = bpy.context.object
+        scene = context.scene
+        props = scene.RD_Props
+        
+        #Layout Starts
+        col = layout.column()
+        
+        
+        row = col.row(align=True)
+        #row.label(text="Influence Vertex Groups:")
+        row.label(text="Apply to Selected Vertex Groups:")
+        
+        row = col.row(align=True)
+        button = row.operator("rig_debugger.vertex_group_influence", text="From Vertex Selection", icon="RESTRICT_SELECT_OFF")
+        button.type = "FROM_SELECTION"
+        
+        
+        col.separator()
+        
+        row = col.row(align=True)
+        row.prop(props, "inclusion", expand=True)
+        
+        row = col.row(align=True)
+        row.prop(props, "vertex_group_weight", expand=True)
+        
+        row = col.row(align=True)
+        row.prop(props, "include_mirror_selection", expand=True)
+        
+        col.separator()
+        
+        row = col.row(align=True)
+        row.prop(props, "exclude_non_sides", expand=True)
+        
+        row = col.row(align=True)
+        row.prop(props, "enforce_direction", expand=True)
+        
+        row = col.row(align=True)
+        row.prop(props, "direction", expand=True)
+        row.active = bool(props.enforce_direction)
+        #col.separator()
+        
+        row = col.row(align=True)
+        row.prop(props, "auto_mirror", expand=True)
+        row.active = bool(props.enforce_direction)
+        
+        col.separator()
+
 #Note: The driver editor doesn't have a use for this panel or its ops
 """
 class RIG_DEBUGGER_PT_VertexGroups2(VertexGroupsOpsDraw, bpy.types.Panel):
@@ -3240,6 +3469,7 @@ class RIG_DEBUGGER_Props(bpy.types.PropertyGroup):
     
     #hide_types_last
     #hide_last: bpy.props.BoolProperty(name="Exclude Recent Iteration", description="When using the operators for toggling \"all objects\"", default=False)
+
     
 #Classes that are registered
 classes = (
@@ -3251,14 +3481,17 @@ classes = (
     RIG_DEBUGGER_OT_DriverOps,
     RIG_DEBUGGER_OT_DriverExtrapolation,
     
-    RIG_DEBUGGER_OT_VertexGroup_Ops,
     RIG_DEBUGGER_OT_VertexGroupInfluence,
+    RIG_DEBUGGER_OT_VertexGroupOps,
+    
     #RIG_DEBUGGER_OT_UIOperators,
     REGEX_SCANNER_OT_General_UIOps,
     
     RIG_DEBUGGER_OT_VertexGroup_UIOps,
     
     #RIG_DEBUGGER_UL_items,
+    REGEX_SCANNER_MT_DropdownMenu1,
+    REGEX_SCANNER_MT_DropdownMenu2,
     
     RIG_DEBUGGER_WEIGHTGROUPS_UL_items,
     RIG_DEBUGGER_PT_CustomPanel1,
@@ -3271,6 +3504,8 @@ classes = (
     RIG_DEBUGGER_PT_DriverInfo2,
     
     RIG_DEBUGGER_PT_VertexGroups1,
+    #Subpanel
+    RIG_DEBUGGER_PT_VertexGroups1_InfluenceVertGroups,
     #RIG_DEBUGGER_PT_VertexGroups2,
     
     RIG_DEBUGGER_PreferencesMenu,
@@ -3319,7 +3554,6 @@ def unregister():
         else:
             print("Already unregistered: %s" % (str(cls.__name__)) )
         #"""
-    
     
     
 if __name__ == "__main__":
