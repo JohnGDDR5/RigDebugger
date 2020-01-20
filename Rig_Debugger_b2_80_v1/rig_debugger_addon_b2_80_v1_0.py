@@ -628,7 +628,7 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
                             
                         dict_1[nameNormal][prop][array_index] = i[0]
                         
-                        #if self.type == "MIRROR_FROM_ACTIVE_DRIVERS":
+                        ##Basically, if the Operator is in the Driver_Editor, take into account the selected drivers
                         if self.type == "DRIVER_EDITOR" and self.sub == "ACTIVE_DRIVERS":
                             #If the driver is selected, add this driver to dict_direction
                             if i[1].select == True:
@@ -647,7 +647,7 @@ class RIG_DEBUGGER_OT_DriverMirror(bpy.types.Operator):
                     #10print("Passed: %s" % (str(i)) )
                     pass
                     
-            #These are where the differences in what dict_1 bone names are selected and appended to dict_direction for mirror calculation
+            ##These are where the differences in what dict_1 bone names are selected and appended to dict_direction for mirror calculation
             #if self.type == "MIRROR_FROM_ACTIVE_BONE":
             if self.type == "ARMATURE":
                 if self.sub == "ACTIVE_BONE_ALL":
@@ -2078,6 +2078,9 @@ class RIG_DEBUGGER_OT_VertexGroupInfluence(bpy.types.Operator):
             verts = getSelectedVertices(ob)
             
             if props.enforce_direction == True or props.exclude_non_sides == True:
+                #index list of props.vertex_groups to compare to object vertex_groups
+                vg_props = getVerGpsProps(props.vertex_groups, ob)
+            
                 vg_props = getVerGpsFromDirection(ob, vg_props, direction, props.exclude_non_sides, props.enforce_direction)
             
             
@@ -2475,7 +2478,7 @@ class RIG_DEBUGGER_OT_SelectVertexGroupCount(bpy.types.Operator):
         self.report({'INFO'}, reportString)
         
         #Resets default settings
-        self.resetSelf()
+        #self.resetSelf()
         
         return {'FINISHED'}
 

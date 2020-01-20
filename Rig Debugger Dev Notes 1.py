@@ -20,8 +20,28 @@ bl_options = {"REGISTER", "UNDO",}
 #"REGISTER" is to allow the Left-Bottom UI panel to display in the 3D-Viewport
 #"UNDO" is to allow undos
 
+
+##How to access Drivers of different types:
+##Shape Keys
+bpy.context.object.data.shape_keys.animation_data.drivers[0]
+##Pose Bone Drivers
+bpy.context.object.animation_data.drivers[18]
+
+
+##Shape Key Notes:
+bpy.context.object.active_shape_key
+#Returns bpy.data.shape_keys['Key'].key_blocks["Key 1.L"]
+
+bpy.context.object.active_shape_key_index
+#Returns Integer, ex. 1
+
+
+
+
 for i in enumerate(bpy.data.objects['Armature.1'].animation_data.drivers):
     print("%d: Index %d" % (i[0], i[1].array_index))
+
+##Pose Bone Driver Notes:
 
 bpy.context.object.pose.bones["Hoof.Front.Roll.Back.L"].rotation_euler[2]
 #Adds a driver
