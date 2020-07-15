@@ -315,7 +315,7 @@ class RIG_DEBUGGER_OT_MirrorCustomBones(bpy.types.Operator):
             #print("active_bone_side: %s" % (active_bone_side) )
             total_bones = len(active_object.pose.bones)
             total_bones_affected = 0
-            total_selected_bones = context.selected_pose_bones
+            total_selected_bones = len(context.selected_pose_bones)
 
             if active_bone_side == "l" or active_bone_side == "r" :
                 pose_bones = context.object.pose.bones
