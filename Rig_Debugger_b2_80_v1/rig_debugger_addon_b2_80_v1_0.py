@@ -107,7 +107,7 @@ def getDirectionRegEx(string, type=None):
         return match
     
 def getDirection(string, flip=False):
-    #Will return "l" or "r"
+    #Will return string "l" or "r"
     #print("getDirection(): %s" % (string) )
     
     match = getDirectionRegEx(string)
@@ -215,7 +215,90 @@ def flipNames(string):
     else:
         return None
         
+class RIG_DEBUGGER_OT_MirrorCustomBones(bpy.types.Operator):
+    bl_idname = "rig_debugger.mirror_custom_bones"
+    bl_label = "Mirror Custom Bones of Armature"
+    bl_description = "Uses Active Bone side to mirror Left and Right bones."
+    bl_options = {'UNDO',}
+    #type: bpy.props.StringProperty(default="DEFAULT")
+    #sub: bpy.props.StringProperty(default="DEFAULT")
+    #index: bpy.props.IntProperty(default=0, min=0)
+    
+    @classmethod
+    def poll(cls, context):
+        scene = bpy.context.scene
+        props = scene.RD_Props
+        ob_type = context.active_object.type
         
+        return context.active_object is not None and ob_type is "ARMATURE"
+    
+    def execute(self, context):
+        scene = bpy.context.scene
+        #context = bpy.context
+        data = context.object.data
+        props = scene.RD_Props
+
+        active_object = context.active_object # Active Object
+        active_bone = context.active_pose_bone # Active Pose Bone
+
+        def mirror_custom_bone(ob, pose_bone1, pose_bone2):
+            pose_bones = context.object.pose.bones
+            data_bones = context.object.data.bones
+
+            pose_bone1.custom_shape = pose_bone2.custom_shape # Custom Bone Shape
+            pose_bone1.custom_shape_scale = pose_bone2.custom_shape_scale # Bone Scale
+            pose_bone1.use_custom_shape_bone_size = pose_bone2.use_custom_shape_bone_size # Use Bone Size
+
+            data_bones[pose_bone1.name].show_wire = data_bones[pose_bone2.name].show_wire # Wire
+            # .custom_shape
+            # .custom_shape_scale
+            # .use_custom_shape_bone_size
+            # bpy.context.object.pose.bones['Root'].use_custom_shape_bone_size
+            # bpy.context.object.data.bones['Root'].show_wire # This one isn't in pose.bones
+
+        if active_bone is not None:
+            active_bone_side = getDirection(active_bone, flip=False) # String
+
+            print("active_bone_side: %s" % (active_bone_side) )
+
+            if active_bone_side == "l" or active_bone_side == "r" :
+                pose_bones = context.object.pose.bones
+                for i in pose_bones:
+                    bone_side = getDirection(active_bone, flip=False)
+                    print("bone_side: %s" % (bone_side) )
+
+                    # If the Side of the Bone is the same as Active Bone
+                    if bone_side == active_bone_side:
+                        flipped_name = flipNames(i.name)
+                        pose_bone_gotten = pose_bones.get(flipped_name)
+
+                        # If there is an opposite flipped named bone
+                        if pose_bone_gotten is not None:
+                            mirror_custom_bone(ob, i, pose_bone_gotten)
+                    else:
+                        continue
+            else:
+                reportString = "Bone isn't flippable"
+        else:
+            reportString = "No Active Pose Bone found"
+
+        
+        # bpy.context.object.pose.bones['
+        # bpy.context.active_pose_bone
+        # bpy.context.active_object
+        
+        
+        #else:
+        #reportString = "Object[%s] has No Drivers" % (bpy.context.object.name)
+            
+        #print(reportString + "\n")
+        self.report({'INFO'}, reportString)
+        
+        #Resets default settings
+        #self.type == "DEFAULT"
+        
+        return {'FINISHED'}
+
 class RIG_DEBUGGER_OT_Debugging(bpy.types.Operator):
     bl_idname = "rig_debugger.debug"
     bl_label = "Rig and Driver Debugging Operators"
@@ -2517,17 +2600,17 @@ def UI_Functions(collection, UI_Index, type):
     #gets the last index of list
     list_length = len(col)-1
     print("UI_Index[1]: %d" % (UI_Index) )
-    
+    #Add new item to collection
     if type == "ADD":
         col.add()
         UI_Index = len(col)-1
         #if len(col)
-        
+    #Basically Deletes
     elif type == "REMOVE":
         col.remove(UI_Index)
         if UI_Index >= list_length:
             UI_Index -= 1
-        
+    #Moves up
     elif type == "UP":
         if UI_Index != 0:
             col.move(UI_Index, UI_Index-1)
@@ -2535,7 +2618,7 @@ def UI_Functions(collection, UI_Index, type):
         else:
             col.move(UI_Index, list_length)
             UI_Index = list_length
-            
+    #Moves down
     elif type == "DOWN":
         if UI_Index != list_length:
             col.move(UI_Index, UI_Index+1)
@@ -2543,6 +2626,7 @@ def UI_Functions(collection, UI_Index, type):
         else:
             col.move(UI_Index, 0)
             UI_Index = 0
+    #Creates a Duplicate of the object in the collection
     elif type == "DUPLICATE":
         if list_length >= 0:
             duplicate = col.add()
@@ -2964,6 +3048,12 @@ class RIG_DEBUGGER_PT_CustomPanel1(bpy.types.Panel):
         #Layout Starts
         col = layout.column()
         
+        row = col.row(align=True)
+        row.label(text="Mirror All Bone Custom Bones:")
+        
+        row = col.row(align=True)
+        button = row.operator("rig_debugger.mirror_custom_bones", icon="MOD_MIRROR", text="Mirror All Custom Bones")
+
         row = col.row(align=True)
         row.label(text="Mirror Drivers:")
         
@@ -3540,9 +3630,11 @@ class RIG_DEBUGGER_Props(bpy.types.PropertyGroup):
     
 #Classes that are registered
 classes = (
+    
     RIG_DEBUGGER_WeightGroups,
     RIG_DEBUGGER_Props,
     
+    RIG_DEBUGGER_OT_MirrorCustomBones,
     RIG_DEBUGGER_OT_Debugging,
     RIG_DEBUGGER_OT_DriverMirror,
     RIG_DEBUGGER_OT_DriverOps,
